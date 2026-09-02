@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-nemotron-nano-9b
+  # Apply with: kubectl apply -f vllm-deployment.yaml -n llm-d-poc
+  labels:
+    app: vllm-nemotron-nano-9b
+    llm-d.ai/engine-type: vllm
+spec:
+  replicas: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: vllm-nemotron-nano-9b
+  template:
+    metadata:
+      labels:
+        app: vllm-nemotron-nano-9b
+        llm-d.ai/engine-type: vllm
+    spec:
+      containers:
+        - name: vllm
+          image: docker.io/vllm/vllm-openai:v0.27.1
+          command:
+            - python3
+            - -m
+            - vllm.entrypoints.openai.api_server
+          args:
+            - --model
+            - nvidia/NVIDIA-Nemotron-Nano-9B-v2
+            - --trust-remote-code
+            - --mamba_ssm_cache_dtype
+            - float32
+            - --tensor-parallel-size
+            - "1"
+            - --port
+            - "8000"
+            - --max-model-len
+            - "8192"
+            - --gpu-memory-utilization
+            - "0.90"
+            - --max-num-seq
+            - "24"
+          env:
+            - name: VLLM_USE_V1
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "15"
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory

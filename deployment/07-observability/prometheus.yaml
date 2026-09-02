@@ -1,0 +1,137 @@
+# =============================================================================
+# Prometheus — metrics collection for EPP and vLLM
+# =============================================================================
+# Scrapes the EPP service (flow-control + latency metrics) and vLLM pods
+# (engine metrics) in the llm-d-poc namespace.
+#
+# Uses emptyDir for storage so data is ephemeral — easy to wipe and reset.
+# 24 h retention keeps storage footprint small for PoC benchmarks.
+# =============================================================================
+
+# ---- Scrape configuration ---------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: llm-d-monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+    # EPP metrics (flow control, latency, scheduling)
+    - job_name: epp
+      static_configs:
+      - targets:
+        - vllm-nemotron-nano-9b-epp.llm-d-poc.svc.cluster.local:9090
+
+    # vLLM engine metrics (per-pod discovery)
+    - job_name: vllm
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - llm-d-poc
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: vllm-nemotron-nano-9b
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: ${1}:8000
+
+---
+# ---- RBAC for pod discovery -------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: llm-d-monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources: [pods, nodes, services, endpoints]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: llm-d-monitoring
+
+---
+# ---- Deployment -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: llm-d-monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v3.5.0
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/tmp/prometheus
+        - --storage.tsdb.retention.time=24h
+        - --web.enable-lifecycle
+        ports:
+        - containerPort: 9090
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/prometheus
+        - name: data
+          mountPath: /tmp/prometheus
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-config
+      - name: data
+        emptyDir: {}
+
+---
+# ---- Service ----------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: llm-d-monitoring
+  labels:
+    app: prometheus
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090

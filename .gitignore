@@ -1,0 +1,24 @@
+# Results and temporary files
+benchmarks/results/*/
+!benchmarks/results/.gitkeep
+
+# Secrets
+**/*.secret
+.env.local
+
+# Python / venv
+.venv/
+__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+*.log
+/istio-*/

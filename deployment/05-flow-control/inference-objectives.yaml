@@ -1,0 +1,58 @@
+# =============================================================================
+# InferenceObjective manifests for flow-control priority bands
+# =============================================================================
+#
+# Each InferenceObjective maps to a priority band in the EPP's flowControl
+# configuration. Clients select an objective by setting the
+# "x-inference-objective" header on their request.
+#
+# The EPP uses the objective's priority to decide which band handles the
+# request. Higher priority bands are shed last under saturation.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# realtime (priority 100)
+# Highest priority. Use for latency-sensitive, user-facing traffic such as
+# interactive chat completions. These requests are shed last and receive the
+# largest share of in-flight capacity (200 slots).
+# -----------------------------------------------------------------------------
+apiVersion: llm-d.ai/v1alpha2
+kind: InferenceObjective
+metadata:
+  name: realtime
+  namespace: llm-d-poc
+spec:
+  poolRef:
+    name: vllm-nemotron-nano-9b
+  priority: 100
+---
+# -----------------------------------------------------------------------------
+# standard (priority 0)
+# Default priority. Use for normal API traffic that can tolerate moderate
+# queuing but should not be aggressively shed. Allocated 150 in-flight slots.
+# -----------------------------------------------------------------------------
+apiVersion: llm-d.ai/v1alpha2
+kind: InferenceObjective
+metadata:
+  name: standard
+  namespace: llm-d-poc
+spec:
+  poolRef:
+    name: vllm-nemotron-nano-9b
+  priority: 0
+---
+# -----------------------------------------------------------------------------
+# batch-sheddable (priority -1)
+# Lowest priority. Use for background / batch workloads (e.g. bulk
+# summarization, offline evaluation). These requests are the first to be
+# shed when the system saturates, receiving only 50 in-flight slots.
+# -----------------------------------------------------------------------------
+apiVersion: llm-d.ai/v1alpha2
+kind: InferenceObjective
+metadata:
+  name: batch-sheddable
+  namespace: llm-d-poc
+spec:
+  poolRef:
+    name: vllm-nemotron-nano-9b
+  priority: -1

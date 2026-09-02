@@ -1,0 +1,111 @@
+# =============================================================================
+# Helm values for the llm-d-router-gateway chart — FLOW CONTROL ENABLED
+# =============================================================================
+#
+# router.epp
+#   Configures the Endpoint Picker Plugin (EPP) that sits in front of the
+#   model-server pool and decides which backend handles each request.
+#
+# pluginsCustomConfig / default-plugins.yaml
+#   Defines the full scheduling and flow-control pipeline:
+#     - queue-scorer / kv-cache-utilization-scorer  → scheduling plugins that
+#       score backends by queue depth and KV-cache pressure.
+#     - round-robin-fairness-policy  → ensures requests from different clients
+#       get equal access within a priority band.
+#     - fcfs-ordering-policy  → first-come-first-served ordering inside bands.
+#     - concurrency-detector  → saturation signal; when a backend exceeds
+#       maxConcurrency, flow control begins shedding or queuing.
+#
+#   flowControl section
+#     Global cap of 500 in-flight requests, 60 s TTL.
+#     Three priority bands carve that budget:
+#       priority  100 → realtime   (200 slots)
+#       priority    0 → standard   (150 slots)
+#       priority   -1 → batch      ( 50 slots, sheddable first)
+#
+# modelServers  → label selector + port for discovering vLLM pods.
+# inferencePool → creates the InferencePool CRD; FailOpen keeps traffic
+#                 flowing if the EPP is unavailable.
+# inferenceObjectives → declares three InferenceObjective CRDs whose
+#                        priorities map 1-to-1 to the flowControl bands.
+#
+# provider  → Istio as the data-plane provider for Gateway API.
+# httpRoute → creates an HTTPRoute attached to the shared inference gateway
+#             with a generous 300 s timeout for long completions.
+# =============================================================================
+
+router:
+  epp:
+    image:
+      tag: v0.10.0
+    replicas: 1
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        memory: 2Gi
+    pluginsCustomConfig:
+      default-plugins.yaml: |
+        apiVersion: llm-d.ai/v1alpha1
+        kind: EndpointPickerConfig
+        featureGates:
+        - flowControl
+        plugins:
+        - type: queue-scorer
+        - type: kv-cache-utilization-scorer
+        - type: round-robin-fairness-policy
+        - type: fcfs-ordering-policy
+        - type: concurrency-detector
+          parameters:
+            maxConcurrency: 15
+            concurrencyMode: requests
+            headroom: 0.0
+        saturationDetector:
+          pluginRef: concurrency-detector
+        flowControl:
+          maxRequests: "500"
+          defaultRequestTTL: "60s"
+          priorityBands:
+          - priority: 100
+            maxRequests: "200"
+            fairnessPolicyRef: round-robin-fairness-policy
+            orderingPolicyRef: fcfs-ordering-policy
+          - priority: 0
+            maxRequests: "150"
+            fairnessPolicyRef: round-robin-fairness-policy
+            orderingPolicyRef: fcfs-ordering-policy
+          - priority: -1
+            maxRequests: "50"
+            fairnessPolicyRef: round-robin-fairness-policy
+            orderingPolicyRef: fcfs-ordering-policy
+        schedulingProfiles:
+        - name: default
+          plugins:
+          - pluginRef: queue-scorer
+            weight: 2
+          - pluginRef: kv-cache-utilization-scorer
+            weight: 2
+  modelServers:
+    matchLabels:
+      app: vllm-nemotron-nano-9b
+    targetPorts:
+    - number: 8000
+  inferencePool:
+    create: true
+    failureMode: FailOpen
+  inferenceObjectives:
+  - name: realtime
+    priority: 100
+  - name: standard
+    priority: 0
+  - name: batch-sheddable
+    priority: -1
+
+provider:
+  name: istio
+
+httpRoute:
+  create: true
+  inferenceGatewayName: llm-d-inference-gateway
+  requestTimeout: "300s"

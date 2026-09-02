@@ -1,0 +1,68 @@
+# =============================================================================
+# Helm values for the llm-d-router-gateway chart — FLOW CONTROL DISABLED
+# =============================================================================
+#
+# Baseline configuration used for A/B comparison against the flow-control-
+# enabled variant (epp-values.yaml).
+#
+# Differences from the flow-control values:
+#   • The "flowControl" feature gate is removed.
+#   • The flowControl section (global cap, TTL, priority bands) is removed.
+#   • The saturation detector (concurrency-detector) is removed.
+#   • Fairness and ordering policy plugins are removed.
+#   • Only the two scheduling scorers remain (queue-scorer,
+#     kv-cache-utilization-scorer).
+#
+# InferenceObjective declarations are kept so the same CRDs exist in the
+# cluster, but without the flowControl feature gate they have no effect on
+# request routing.
+# =============================================================================
+
+router:
+  epp:
+    image:
+      tag: v0.10.0
+    replicas: 1
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        memory: 2Gi
+    pluginsCustomConfig:
+      default-plugins.yaml: |
+        apiVersion: llm-d.ai/v1alpha1
+        kind: EndpointPickerConfig
+        plugins:
+        - type: queue-scorer
+        - type: kv-cache-utilization-scorer
+        schedulingProfiles:
+        - name: default
+          plugins:
+          - pluginRef: queue-scorer
+            weight: 2
+          - pluginRef: kv-cache-utilization-scorer
+            weight: 2
+  modelServers:
+    matchLabels:
+      app: vllm-nemotron-nano-9b
+    targetPorts:
+    - number: 8000
+  inferencePool:
+    create: true
+    failureMode: FailOpen
+  inferenceObjectives:
+  - name: realtime
+    priority: 100
+  - name: standard
+    priority: 0
+  - name: batch-sheddable
+    priority: -1
+
+provider:
+  name: istio
+
+httpRoute:
+  create: true
+  inferenceGatewayName: llm-d-inference-gateway
+  requestTimeout: "300s"

@@ -1,0 +1,8 @@
+[project]
+name = "llm-d-flow-control"
+version = "0.1.0"
+description = "PoC for llm-d flow control: priority scheduling, fairness, and SLA enforcement"
+requires-python = ">=3.11"
+dependencies = [
+    "aiperf",
+]

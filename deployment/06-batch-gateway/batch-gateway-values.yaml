@@ -1,0 +1,60 @@
+# =============================================================================
+# Helm values for the batch-gateway chart (v0.5.0)
+# =============================================================================
+#
+# Deploys the batch-gateway API server and processor into the batch-api
+# namespace. The processor fans inference requests through the internal
+# gateway with inferenceObjective: batch-sheddable so that EPP flow control
+# treats them as lowest-priority work.
+#
+# Backing stores (Redis, PostgreSQL, MinIO) are deployed separately via the
+# companion YAML manifests in this directory.
+#
+# Connection URLs for Redis and PostgreSQL are read from the Kubernetes
+# secret named below (not from Helm values).
+# =============================================================================
+
+global:
+  secretName: batch-gateway-secrets
+
+  dbClient:
+    type: postgresql
+
+  fileClient:
+    type: s3
+    s3:
+      region: us-east-1
+      bucket: batch-files
+      endpoint: http://minio.batch-api.svc.cluster.local:9000
+      accessKeyId: minioadmin
+      usePathStyle: true
+      autoCreateBucket: true
+
+apiserver:
+  replicaCount: 1
+  tls:
+    enabled: false
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+processor:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  config:
+    modelGateways:
+      "nvidia/NVIDIA-Nemotron-Nano-9B-v2":
+        url: http://batch-internal-gateway.batch-api.svc.cluster.local
+        inferenceObjective: batch-sheddable
+        requestTimeout: "5m"
+        maxRetries: 3
+        initialBackoff: "1s"
+        maxBackoff: "60s"

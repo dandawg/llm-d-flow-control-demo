@@ -40,18 +40,22 @@ case "${ACTION}" in
 esac
 
 echo "==> Adding Grafana annotation: ${TEXT}"
-RESPONSE=$(curl -s -X POST "${GRAFANA_URL}/api/annotations" \
+if RESPONSE=$(curl -s --connect-timeout 5 -X POST "${GRAFANA_URL}/api/annotations" \
   -u "${GRAFANA_AUTH}" \
   -H "Content-Type: application/json" \
   -d "{
     \"time\": ${EPOCH_MS},
     \"tags\": [\"benchmark\", \"${TAG}\"],
     \"text\": \"${TEXT}\"
-  }")
-
-ANNOTATION_ID=$(echo "${RESPONSE}" | jq -r '.id // empty')
-if [[ -n "${ANNOTATION_ID}" ]]; then
-  echo "==> Annotation created: id=${ANNOTATION_ID}"
+  }"); then
+  ANNOTATION_ID=$(echo "${RESPONSE}" | jq -r '.id // empty')
+  if [[ -n "${ANNOTATION_ID}" ]]; then
+    echo "==> Annotation created: id=${ANNOTATION_ID}"
+  else
+    echo "WARN: Grafana annotation may have failed: ${RESPONSE}" >&2
+  fi
 else
-  echo "WARN: Grafana annotation may have failed: ${RESPONSE}" >&2
+  echo "WARN: Could not reach Grafana at ${GRAFANA_URL} — skipping annotation" >&2
+  echo "      Is the port-forward running? Try:" >&2
+  echo "        kubectl port-forward svc/grafana ${GRAFANA_PORT}:3000 -n ${MONITORING_NAMESPACE} &" >&2
 fi

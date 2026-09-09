@@ -17,7 +17,7 @@ Runs **two workloads in parallel**:
 2. **Batch job** via `submit-batch-job.sh`: 500 chat completion requests
    submitted through the `/v1/batches` API.
 
-The batch job routes through the **batch-sheddable** tier (priority -1), while
+The batch job routes through the **low-priority** tier (priority -1), while
 interactive traffic uses the **standard** tier (priority 0).
 
 ## How to Run
@@ -35,7 +35,7 @@ interactive traffic uses the **standard** tier (priority 0).
 - **Batch completion time**: The batch job will take longer than if it ran
   alone, because it is in the lowest priority band and may be shed under
   pressure. This is expected — batch work should yield to interactive.
-- **Shedding**: Expect shedding in the batch-sheddable band while
+- **Shedding**: Expect shedding in the low-priority band while
   interactive traffic is flowing. Once interactive traffic subsides, the
   batch job should accelerate.
 - **Grafana**: Compare the `llm_d_flow_control_inflight_requests` panel

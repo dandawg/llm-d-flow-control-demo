@@ -1,32 +1,42 @@
 {
   "uid": "fairness-analysis",
   "title": "Fairness Analysis",
-  "tags": ["llm-d", "fairness"],
+  "tags": [
+    "llm-d",
+    "fairness"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
-  "refresh": "10s",
+  "refresh": "2s",
   "time": {
     "from": "now-30m",
     "to": "now"
   },
-  "templating": {
-    "list": [
-      {
-        "name": "DS_PROMETHEUS",
-        "type": "datasource",
-        "query": "prometheus",
-        "current": { "text": "Prometheus", "value": "prometheus" }
-      }
+  "timepicker": {
+    "refresh_intervals": [
+      "1s",
+      "2s",
+      "5s",
+      "10s",
+      "30s"
     ]
   },
   "panels": [
     {
-      "id": 1,
-      "title": "Dispatch Count by Tenant",
+      "id": 7,
+      "title": "Request Count by Tenant",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
@@ -42,8 +52,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by(flow_id) (rate(llm_d_epp_flow_control_requests_total{outcome=\"Dispatched\"}[1m]))",
-          "legendFormat": "{{flow_id}}"
+          "expr": "sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{fairness_id!=\"default-flow\"}[15s]))",
+          "legendFormat": "{{fairness_id}}"
         }
       ]
     },
@@ -52,8 +62,16 @@
       "title": "Jain's Fairness Index",
       "description": "Measures how fairly capacity is distributed across tenants. 1.0 = perfectly fair.",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -68,9 +86,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 0.8 },
-              { "color": "green", "value": 0.95 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
             ]
           }
         },
@@ -79,7 +106,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "llm_d_epp_program_aware_jains_fairness_index",
+          "expr": "sum(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))) ^ 2 / (count(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))) * sum(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s])) ^ 2))",
           "legendFormat": "fairness index"
         }
       ]
@@ -88,34 +115,16 @@
       "id": 3,
       "title": "Avg Wait Time by Tenant",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "showPoints": "never"
-          }
-        },
-        "overrides": []
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
       },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "llm_d_epp_program_aware_avg_wait_time_milliseconds",
-          "legendFormat": "{{flow_id}}"
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "title": "TTFT p95 by Tenant",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -131,8 +140,42 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by(le, flow_id) (rate(llm_d_epp_request_ttft_seconds_bucket[1m])))",
-          "legendFormat": "p95 {{flow_id}}"
+          "expr": "sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_sum{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s])) / sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))",
+          "legendFormat": "{{fairness_id}}"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "title": "Dispatch Count by Tenant",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))",
+          "legendFormat": "{{fairness_id}}"
         }
       ]
     },
@@ -140,8 +183,16 @@
       "id": 5,
       "title": "Queue Depth by Tenant",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -157,8 +208,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by(flow_id) (llm_d_epp_flow_control_queue_size)",
-          "legendFormat": "{{flow_id}}"
+          "expr": "sum by(fairness_id) (llm_d_epp_flow_control_queue_size{fairness_id!=\"default-flow\"})",
+          "legendFormat": "{{fairness_id}}"
         }
       ]
     },
@@ -166,8 +217,16 @@
       "id": 6,
       "title": "Current Fairness Index",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -176,9 +235,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 0.8 },
-              { "color": "green", "value": 0.95 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
             ]
           }
         },
@@ -186,7 +254,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "area",
@@ -195,7 +265,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "llm_d_epp_program_aware_jains_fairness_index",
+          "expr": "sum(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))) ^ 2 / (count(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s]))) * sum(sum by(fairness_id) (rate(llm_d_epp_flow_control_request_queue_duration_seconds_count{outcome=\"Dispatched\", fairness_id!=\"default-flow\"}[15s])) ^ 2))",
           "legendFormat": "fairness index"
         }
       ]

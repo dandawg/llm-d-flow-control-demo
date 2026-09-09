@@ -83,7 +83,7 @@ echo "--> Gateway and HTTPRoute applied."
 echo ""
 echo "===== Step 5: InferenceObjectives ====="
 kubectl apply -f "${DEPLOY_ROOT}/05-flow-control/inference-objectives.yaml"
-echo "--> InferenceObjectives applied (realtime / standard / batch-sheddable)."
+echo "--> InferenceObjectives applied (realtime / standard / low-priority)."
 
 # ---------------------------------------------------------------------------
 # Step 6 — Batch Gateway

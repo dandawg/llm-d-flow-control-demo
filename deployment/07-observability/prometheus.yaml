@@ -17,8 +17,8 @@ metadata:
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 15s
-      evaluation_interval: 15s
+      scrape_interval: 2s
+      evaluation_interval: 2s
 
     scrape_configs:
     # EPP metrics (flow control, latency, scheduling)
@@ -41,6 +41,8 @@ data:
       - source_labels: [__meta_kubernetes_pod_ip]
         target_label: __address__
         replacement: ${1}:8000
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
 
 ---
 # ---- RBAC for pod discovery -------------------------------------------------

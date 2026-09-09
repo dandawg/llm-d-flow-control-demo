@@ -21,7 +21,7 @@
 #     Three priority bands carve that budget:
 #       priority  100 → realtime   (200 slots)
 #       priority    0 → standard   (150 slots)
-#       priority   -1 → batch      ( 50 slots, sheddable first)
+#       priority   -1 → low-priority ( 50 slots, shed first)
 #
 # modelServers  → label selector + port for discovering vLLM pods.
 # inferencePool → creates the InferencePool CRD; FailOpen keeps traffic
@@ -39,6 +39,8 @@ router:
     image:
       tag: v0.10.0
     replicas: 1
+    flags:
+      metrics-endpoint-auth: "false"
     resources:
       requests:
         cpu: "1"
@@ -99,7 +101,7 @@ router:
     priority: 100
   - name: standard
     priority: 0
-  - name: batch-sheddable
+  - name: low-priority
     priority: -1
 
 provider:

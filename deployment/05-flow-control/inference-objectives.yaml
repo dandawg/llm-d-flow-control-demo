@@ -42,7 +42,7 @@ spec:
   priority: 0
 ---
 # -----------------------------------------------------------------------------
-# batch-sheddable (priority -1)
+# low-priority (priority -1)
 # Lowest priority. Use for background / batch workloads (e.g. bulk
 # summarization, offline evaluation). These requests are the first to be
 # shed when the system saturates, receiving only 50 in-flight slots.
@@ -50,7 +50,7 @@ spec:
 apiVersion: llm-d.ai/v1alpha2
 kind: InferenceObjective
 metadata:
-  name: batch-sheddable
+  name: low-priority
   namespace: llm-d-poc
 spec:
   poolRef:

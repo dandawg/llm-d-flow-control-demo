@@ -12,7 +12,7 @@ priority-based flow control on a Kubernetes cluster with GPU nodes.
 | 02 | vLLM | 2-replica GPU deployment serving NVIDIA Nemotron Nano 9B v2 via the OpenAI-compatible API |
 | 03 | llm-d Router (EPP) | Endpoint Picker Plugin — the intelligent request router that implements flow control, scheduling, and fairness |
 | 04 | Gateway + HTTPRoute | Istio Gateway exposing `/v1/chat/completions` and `/v1/completions`, routing to the InferencePool |
-| 05 | InferenceObjectives | Three priority bands: `realtime` (100), `standard` (0), `batch-sheddable` (-1) |
+| 05 | InferenceObjectives | Three tiers: premium (`realtime`, 100), standard (`standard`, 0), low-priority (`low-priority`, -1) |
 | 06 | Batch Gateway | OpenAI-compatible `/v1/batches` API for offline workloads, automatically tagged as lowest priority |
 | 07 | Observability | Prometheus + Grafana with pre-built dashboards for flow control, latency, fairness, and vLLM health |
 
@@ -111,13 +111,13 @@ kubectl apply -f deployment/04-gateway/httproute.yaml
 
 ### Step 5 — InferenceObjectives
 
-**Why:** InferenceObjectives declare the priority bands that clients select via
+**Why:** InferenceObjectives declare the tiers that clients select via
 the `x-gateway-inference-objective` HTTP header. The EPP reads these to decide
-which flow-control band handles each request.
+which tier handles each request.
 
-- **realtime** (priority 100) — latency-sensitive, user-facing chat
-- **standard** (priority 0) — normal API traffic
-- **batch-sheddable** (priority -1) — background/batch work, shed first
+- **premium** (priority 100, CRD name: `realtime`) — latency-sensitive, user-facing chat
+- **standard** (priority 0, CRD name: `standard`) — normal API traffic
+- **low-priority** (priority -1, CRD name: `low-priority`) — background/batch work, shed first
 
 ```bash
 kubectl apply -f deployment/05-flow-control/inference-objectives.yaml
@@ -127,7 +127,7 @@ kubectl apply -f deployment/05-flow-control/inference-objectives.yaml
 
 **Why:** The batch gateway provides an OpenAI-compatible `/v1/batches` endpoint.
 It automatically tags every downstream request with
-`x-gateway-inference-objective: batch-sheddable` so batch work uses idle
+`x-gateway-inference-objective: low-priority` so batch work uses idle
 capacity without impacting real-time traffic.
 
 ```bash
@@ -197,28 +197,28 @@ pod to roll out.
 
 ## Sending Requests
 
-Once deployed, get the Gateway IP and send requests with a priority header:
+Once deployed, get the Gateway IP and send requests with a tier header:
 
 ```bash
 GATEWAY_IP=$(kubectl get gateway llm-d-inference-gateway -n istio-ingress \
   -o jsonpath='{.status.addresses[0].value}')
 
-# Real-time priority
+# Premium tier (highest priority)
 curl http://${GATEWAY_IP}/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-gateway-inference-objective: realtime" \
   -d '{"model":"nvidia/NVIDIA-Nemotron-Nano-9B-v2","messages":[{"role":"user","content":"Hello!"}],"max_tokens":64}'
 
-# Standard priority
+# Standard tier
 curl http://${GATEWAY_IP}/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-gateway-inference-objective: standard" \
   -d '{"model":"nvidia/NVIDIA-Nemotron-Nano-9B-v2","messages":[{"role":"user","content":"Summarize this..."}],"max_tokens":256}'
 
-# Batch priority (lowest — shed first under load)
+# Low-priority tier (lowest priority — shed first under load)
 curl http://${GATEWAY_IP}/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "x-gateway-inference-objective: batch-sheddable" \
+  -H "x-gateway-inference-objective: low-priority" \
   -d '{"model":"nvidia/NVIDIA-Nemotron-Nano-9B-v2","messages":[{"role":"user","content":"Classify..."}],"max_tokens":32}'
 ```
 
@@ -230,8 +230,8 @@ Four dashboards are pre-loaded:
 
 | Dashboard | Key Signals |
 |-----------|-------------|
-| **Flow Control Overview** | Pool saturation gauge, queue depth spikes by priority, dispatch/rejection rates, queue wait p95 |
-| **Latency by Tier** | TTFT and TPOT at p50/p95/p99 broken down by priority band — shows whether real-time traffic stays fast while batch traffic absorbs queuing |
+| **Flow Control Overview** | Pool saturation gauge, queue depth spikes by tier (premium/standard/low-priority), dispatch/rejection rates, queue wait p95 |
+| **Latency by Tier** | TTFT and TPOT at p50/p95/p99 broken down by tier — shows whether premium traffic stays fast while low-priority traffic absorbs queuing |
 | **Fairness Analysis** | Jain's fairness index, per-tenant dispatch rates, wait times, and queue depths — verifies the round-robin fairness policy is working |
 | **vLLM Backend Health** | Running/waiting requests per pod, KV cache utilization, token throughput, TTFT from vLLM's perspective, ready endpoint count |
 

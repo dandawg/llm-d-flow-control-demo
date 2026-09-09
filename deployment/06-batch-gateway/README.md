@@ -18,14 +18,14 @@ individual inference requests through an internal (cluster-only) Gateway API
 gateway. Every downstream request is tagged with the header:
 
 ```
-x-gateway-inference-objective: batch-sheddable
+x-gateway-inference-objective: low-priority
 ```
 
-This maps to the `batch-sheddable` InferenceObjective (priority **-1**), the
-lowest priority band configured in the EPP's flow-control pipeline.
+This maps to the `low-priority` InferenceObjective (priority **-1**), the
+lowest priority configured in the EPP's flow-control pipeline.
 
 **At saturation** the EPP will shed batch requests first, preserving capacity
-for `standard` (priority 0) and `realtime` (priority 100) traffic. When the
+for the standard and premium tiers. When the
 processor receives 429 / 503 rejections it retries with an **AIMD-style
 backoff** (additive-increase, multiplicative-decrease), automatically ramping
 throughput back up as headroom returns.

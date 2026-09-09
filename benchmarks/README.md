@@ -87,7 +87,7 @@ benchmarks/results/
 │   └── 20260831-143000/
 │       ├── stream-1-realtime.json
 │       ├── stream-2-standard.json
-│       └── stream-3-batch-sheddable.json
+│       └── stream-3-low-priority.json
 └── archive/
     └── 20260830-120000/
         └── ...  (moved here by reset-run.sh)

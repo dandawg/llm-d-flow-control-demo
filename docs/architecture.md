@@ -11,7 +11,7 @@
 | **Batch Internal Gateway** | ClusterIP gateway for batch processor traffic; not exposed externally | `istio-ingress` | Prevents batch traffic from consuming external gateway capacity |
 | **Endpoint Picker Plugin (EPP)** | The flow control and scheduling brain; receives requests via ext-proc, manages priority queues, scores backends, dispatches | `llm-d-poc` | Runs as a Deployment; configured via `EndpointPickerConfig` in Helm values |
 | **InferencePool** | CRD that groups vLLM pods into a routable pool; references the EPP as the endpoint picker | `llm-d-poc` | `failureMode: FailOpen` keeps traffic flowing if the EPP is unavailable |
-| **InferenceObjective** | CRDs that map objective names to integer priorities (`realtime`=100, `standard`=0, `batch-sheddable`=-1) | `llm-d-poc` | Clients reference these by name via `x-llm-d-inference-objective` header |
+| **InferenceObjective** | CRDs that map objective names to integer priorities (premium tier: `realtime`=100, standard tier: `standard`=0, low-priority tier: `low-priority`=-1) | `llm-d-poc` | Clients reference these by name via `x-llm-d-inference-objective` header |
 | **vLLM** | Model serving engine running `nvidia/NVIDIA-Nemotron-Nano-9B-v2`; exposes OpenAI-compatible API on port 8000 | `llm-d-poc` | 2 replicas on `g5.xlarge` GPU nodes (NVIDIA A10G) |
 | **Prometheus** | Metrics collection; scrapes EPP (port 9090) and vLLM (port 8000/metrics) | `llm-d-monitoring` | |
 | **Grafana** | Dashboard visualization for latency, throughput, queue depth, and saturation metrics | `llm-d-monitoring` | Default admin password set in `config.env` |
@@ -37,8 +37,8 @@ sequenceDiagram
         EPP->>EPP: Score backends<br/>(queue-scorer + kv-cache-utilization-scorer)
         EPP-->>Gateway: Selected backend: vllm-pod-1:8000
     else Pool IS saturated
-        EPP->>EPP: Assign to priority band 100<br/>Place in team-alpha fairness queue
-        EPP->>EPP: Dispatch loop: scan bands top-down<br/>Round-robin select tenant<br/>FCFS select request
+        EPP->>EPP: Assign to premium tier<br/>Place in team-alpha fairness queue
+        EPP->>EPP: Dispatch loop: scan tiers top-down<br/>Round-robin select tenant<br/>FCFS select request
         EPP->>EPP: Score backends
         EPP-->>Gateway: Selected backend: vllm-pod-1:8000
     end
@@ -68,7 +68,7 @@ Step by step:
 
 5. **Saturated path.** The EPP reads the `x-llm-d-inference-objective` header,
    resolves it to the matching InferenceObjective CRD, and assigns the request
-   to the corresponding priority band. The request enters the fairness queue
+   to the corresponding tier. The request enters the fairness queue
    identified by `x-llm-d-inference-fairness-id`. The dispatch loop selects
    the next request to send using the 3-tier hierarchy (priority, fairness,
    ordering) and scores backends for the winner.
@@ -97,17 +97,17 @@ sequenceDiagram
     Client->>BatchAPI: POST /v1/batches<br/>(JSONL file of prompts)
     BatchAPI->>BatchAPI: Persist batch job
     Processor->>BatchAPI: Dequeue next batch item
-    Processor->>IntGW: POST /v1/chat/completions<br/>x-llm-d-inference-objective: batch-sheddable<br/>x-llm-d-inference-fairness-id: batch-job-42
+    Processor->>IntGW: POST /v1/chat/completions<br/>x-llm-d-inference-objective: low-priority<br/>x-llm-d-inference-fairness-id: batch-job-42
     IntGW->>EPP: ext-proc: pick endpoint
-    Note over EPP: Assigns to priority band -1<br/>(sheddable)
-    alt Batch band has capacity
+    Note over EPP: Assigns to low-priority tier
+    alt Low-priority band has capacity
         EPP->>EPP: Queue and dispatch via<br/>3-tier hierarchy
         EPP-->>IntGW: Selected backend
         IntGW->>VLLM: Proxy request
         VLLM-->>IntGW: Completion response
         IntGW-->>Processor: HTTP 200
         Processor->>BatchAPI: Store result
-    else Batch band full (50 requests queued)
+    else Low-priority band full (50 requests queued)
         EPP-->>IntGW: HTTP 429 Rejected
         IntGW-->>Processor: HTTP 429
         Processor->>Processor: Retry with exponential backoff
@@ -125,7 +125,7 @@ Step by step:
    standard chat completion request.
 
 3. **Processor sets headers.** The processor attaches
-   `x-llm-d-inference-objective: batch-sheddable` (mapping to priority -1) and
+   `x-llm-d-inference-objective: low-priority` (mapping to priority -1) and
    a fairness ID that identifies the batch job.
 
 4. **Internal gateway routes request.** The request is sent to the internal
@@ -134,12 +134,12 @@ Step by step:
    EPP via ext-proc.
 
 5. **EPP queues at low priority.** The EPP assigns the request to the
-   priority-(-1) band. If the band already holds 50 requests (its
+   low-priority tier. If the tier already holds 50 requests (its
    `maxRequests` limit), the request is rejected immediately with HTTP 429.
 
 6. **Dispatch or shed.** If the request is admitted to the queue, it waits for
-   higher-priority bands to drain. The dispatch loop only reaches the batch band
-   when no realtime (100) or standard (0) requests are waiting. If the request
+   higher-priority tiers to drain. The dispatch loop only reaches the low-priority tier
+   when no premium or standard requests are waiting. If the request
    waits longer than the 60-second TTL, it is expired from the queue.
 
 7. **Processor handles rejection.** On a 429 or timeout, the processor retries
@@ -154,7 +154,7 @@ Two sources of metrics feed the observability stack:
 
 | Source | Endpoint | Key Metrics |
 |--------|----------|-------------|
-| **EPP** | `:9090/metrics` | Request queue depth per priority band, dispatch latency, saturation state, fairness distribution, shed/reject counts |
+| **EPP** | `:9090/metrics` | Request queue depth per tier, dispatch latency, saturation state, fairness distribution, shed/reject counts |
 | **vLLM** | `:8000/metrics` | Token throughput (tokens/sec), time-to-first-token (TTFT), request latency (e2e and per-phase), KV-cache utilization, GPU memory usage, active sequences |
 
 Prometheus runs in the `llm-d-monitoring` namespace and is configured to scrape
@@ -168,10 +168,9 @@ for:
 
 - **Pool health** -- Saturation state over time, total in-flight requests vs.
   `maxConcurrency` threshold.
-- **Priority band behavior** -- Queue depth per band, dispatch rate per band,
+- **Per-tier behavior** -- Queue depth per tier, dispatch rate per tier,
   time-in-queue distribution.
-- **Fairness distribution** -- Per-tenant dispatch counts within each priority
-  band, showing whether round-robin is balancing correctly.
+- **Fairness distribution** -- Per-tenant dispatch counts within each tier, showing whether round-robin is balancing correctly.
 - **Model server performance** -- Per-pod token throughput, TTFT, KV-cache
   utilization, GPU memory pressure.
 - **Batch processing** -- Shed rate, retry rate, effective throughput for batch
@@ -268,4 +267,15 @@ This separation ensures that:
 
 Both gateways route through the same EPP and the same InferencePool, so all
 traffic -- regardless of entry point -- is subject to the same flow control
-policies, priority bands, and fairness rules.
+policies, tiers, and fairness rules.
+
+---
+
+## What to Read Next
+
+- [Flow Control Primer](flow-control-primer.md) -- Conceptual deep-dive into
+  the 3-tier dispatch hierarchy, headers, and saturation detection.
+- [Platform Engineer Guide](platform-engineer-guide.md) -- Configuration
+  deep-dive explaining why each EPP value was chosen and how to tune them.
+- [Operator Guide](operator-guide.md) -- Dashboard tour, signal reading, and
+  operational runbooks for managing a flow-controlled pool.

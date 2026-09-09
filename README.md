@@ -12,7 +12,7 @@ This repo is organized into three sections that are meant to be followed in orde
 
 ## What This Proves
 
-1. **Priority**: Higher-priority traffic (realtime) gets lower latency than lower-priority traffic (batch) under saturation.
+1. **Priority**: Higher-priority traffic (premium) gets lower latency than lower-priority traffic (batch) under saturation.
 2. **Fairness**: Tenants within the same priority tier receive equal dispatch rates regardless of how much traffic they send.
 3. **Batch isolation**: Offline batch jobs submitted via `/v1/batches` do not degrade interactive traffic.
 4. **Quantified overhead**: The latency cost of enabling flow control is measured and documented.
@@ -77,7 +77,7 @@ make scale-down
 | EPP | Endpoint Picker Plugin deployment rolled out |
 | Gateway | Istio gateway reports `Programmed=True` |
 | InferencePool | Pool has ready endpoints |
-| InferenceObjectives | All three priority-tier objectives exist |
+| InferenceObjectives | All three tier objectives exist (premium, standard, batch) |
 | Observability | Prometheus scraping targets, Grafana running |
 | Smoke test | HTTP 200 from a chat completion through the gateway |
 
@@ -107,12 +107,34 @@ make cluster-status  # Check what's running and current cost
 cluster/           EKS cluster create/delete/scale scripts
 deployment/        Kubernetes manifests and Helm values for the full stack
 benchmarks/        Scenario configs, orchestrator, and results
-docs/              Flow control primer and architecture documentation
+docs/              Flow control primer, architecture, platform engineer guide, operator guide
+demo/              Live demo script and presenter guide
 ```
 
 ## Learning Resources
 
-If you are new to llm-d flow control, start with the [Flow Control Primer](docs/flow-control-primer.md) to understand the concepts, then read the [Architecture Guide](docs/architecture.md) to see how the components fit together.
+Start with the conceptual foundations, then go deeper based on your role:
+
+| Resource | Audience | What You Learn |
+|----------|----------|----------------|
+| [Business Value Guide](docs/business-value.md) | Leadership, stakeholders | Why flow control matters, ROI framework, cost savings, when to use it (and when not to) |
+| [Flow Control Primer](docs/flow-control-primer.md) | Everyone | What flow control is, the 3-tier dispatch hierarchy (premium, standard, batch), how requests enter the system |
+| [Architecture Guide](docs/architecture.md) | Everyone | Component overview, request flow diagrams, network topology |
+| [Platform Engineer Guide](docs/platform-engineer-guide.md) | Platform engineers | Configuration deep-dive, tuning reference, customization checklist, troubleshooting |
+| [Operator Guide](docs/operator-guide.md) | Ops engineers | Dashboard tour, what good/bad looks like, operational runbook, alerting recommendations |
+| [Deployment Guide](deployment/README.md) | Platform engineers | Step-by-step deployment walkthrough |
+| [Presentation Outline](demo/presentation-outline.md) | Presenters | Slide-by-slide outline for a 20-25 minute flow control talk |
+| [Live Demo Presenter Guide](demo/PRESENTER-GUIDE.md) | Solution architects | How to run and narrate a live flow control demo |
+
+### Running a Live Demo
+
+The `demo/` directory contains a scripted multi-phase demo that progressively demonstrates flow control behavior (saturation, priority, fairness, low-priority shedding, recovery) in ~8 minutes. Run it alongside Grafana for a live visual walkthrough:
+
+```bash
+./demo/live-demo.sh
+```
+
+See the [Presenter Guide](demo/PRESENTER-GUIDE.md) for talking points, dashboard guidance, and timing options.
 
 ## Benchmark Scenarios
 
@@ -120,7 +142,7 @@ If you are new to llm-d flow control, start with the [Flow Control Primer](docs/
 |---|---|---|
 | 00 - Baseline (no FC) | Raw performance floor | vLLM Health |
 | 01 - Baseline (with FC) | Flow control overhead | Latency by Tier |
-| 02 - Priority tiers | Higher priority = lower latency at saturation | Flow Control Overview, Latency by Tier |
+| 02 - Priority tiers | Premium tier gets lower latency than standard or batch at saturation | Flow Control Overview, Latency by Tier |
 | 03 - Intra-tier fairness | Equal treatment regardless of volume | Fairness Analysis |
 | 04 - Batch vs interactive | `/v1/batches` does not degrade interactive users | Flow Control Overview |
 

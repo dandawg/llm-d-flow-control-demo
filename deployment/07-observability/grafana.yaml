@@ -17,6 +17,9 @@ data:
     enabled = true
     org_role = Viewer
 
+    [dashboards]
+    min_refresh_interval = 1s
+
     [security]
     admin_user = admin
     admin_password = admin
@@ -34,6 +37,7 @@ data:
     datasources:
     - name: Prometheus
       type: prometheus
+      uid: prometheus
       access: proxy
       url: http://prometheus.llm-d-monitoring.svc.cluster.local:9090
       isDefault: true

@@ -1,23 +1,25 @@
 {
   "uid": "vllm-backend-health",
   "title": "vLLM Backend Health",
-  "tags": ["llm-d", "vllm"],
+  "tags": [
+    "llm-d",
+    "vllm"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
-  "refresh": "10s",
+  "refresh": "2s",
   "time": {
     "from": "now-30m",
     "to": "now"
   },
-  "templating": {
-    "list": [
-      {
-        "name": "DS_PROMETHEUS",
-        "type": "datasource",
-        "query": "prometheus",
-        "current": { "text": "Prometheus", "value": "prometheus" }
-      }
+  "timepicker": {
+    "refresh_intervals": [
+      "1s",
+      "2s",
+      "5s",
+      "10s",
+      "30s"
     ]
   },
   "panels": [
@@ -25,8 +27,16 @@
       "id": 1,
       "title": "Running Requests per Pod",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -51,8 +61,16 @@
       "id": 2,
       "title": "Waiting Requests per Pod",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -77,8 +95,16 @@
       "id": 3,
       "title": "KV Cache Utilization per Pod",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -93,9 +119,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.7 },
-              { "color": "red", "value": 0.9 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
             ]
           }
         },
@@ -113,8 +148,16 @@
       "id": 4,
       "title": "Token Throughput",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -130,7 +173,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(vllm:prompt_tokens_total[1m])) + sum(rate(vllm:generation_tokens_total[1m]))",
+          "expr": "sum(rate(vllm:prompt_tokens_total[15s])) + sum(rate(vllm:generation_tokens_total[15s]))",
           "legendFormat": "tokens/sec"
         }
       ]
@@ -139,8 +182,16 @@
       "id": 5,
       "title": "TTFT p95 from vLLM",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -156,7 +207,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket[1m])))",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket[15s])))",
           "legendFormat": "p95 TTFT"
         }
       ]
@@ -165,8 +216,16 @@
       "id": 6,
       "title": "Ready Endpoints",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",

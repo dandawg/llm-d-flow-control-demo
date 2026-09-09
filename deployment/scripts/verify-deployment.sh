@@ -141,7 +141,8 @@ if [[ -n "${GATEWAY_IP}" ]]; then
     -H "Content-Type: application/json" \
     -H "x-gateway-inference-objective: standard" \
     -d "{\"model\":\"${MODEL_NAME}\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}" \
-    2>/dev/null || echo "000")
+    2>/dev/null) || true
+  [[ -z "${HTTP_CODE}" ]] && HTTP_CODE="000"
   if [[ "${HTTP_CODE}" == "200" ]]; then
     echo "  ✓  Smoke test returned HTTP 200"
     ((PASS++))

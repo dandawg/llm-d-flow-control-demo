@@ -4,6 +4,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${REPO_ROOT}/config.env"
 
+# Ensure aiperf is on PATH (auto-detect project venv if not activated)
+if ! command -v aiperf &>/dev/null; then
+  if [[ -x "${REPO_ROOT}/.venv/bin/aiperf" ]]; then
+    export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
+  else
+    echo "ERROR: aiperf not found. Run 'uv sync' first." >&2
+    exit 1
+  fi
+fi
+
 usage() {
   echo "Usage: $0 <scenario-dir>"
   echo ""
@@ -76,25 +86,44 @@ for i in $(seq 1 "${STREAM_COUNT}"); do
   REQUEST_COUNT="${!REQUEST_COUNT_VAR:-0}"
   STREAMING="${!STREAMING_VAR:-true}"
 
+  # Parse DATA="prompt_tokens=X,output_tokens=Y" into ISL / OSL
+  ISL=""
+  OSL=""
+  IFS=',' read -ra DATA_PAIRS <<< "${DATA}"
+  for pair in "${DATA_PAIRS[@]}"; do
+    key="${pair%%=*}"
+    val="${pair#*=}"
+    case "${key}" in
+      prompt_tokens)  ISL="${val}" ;;
+      output_tokens)  OSL="${val}" ;;
+    esac
+  done
+
   # Build header args — the array may be empty
   HEADER_ARGS=()
-  if declare -p "${NAME_VAR%%_NAME}_HEADERS" &>/dev/null 2>&1; then
-    HEADER_ARGS=("${!HEADERS_VAR}")
+  _hdr_name="STREAM_${i}_HEADERS"
+  if declare -p "${_hdr_name}" &>/dev/null 2>&1; then
+    eval "_hdr_count=\${#${_hdr_name}[@]}"
+    if (( _hdr_count > 0 )); then
+      HEADER_ARGS=("${!HEADERS_VAR}")
+    fi
   fi
 
-  OUTPUT_FILE="${RESULTS_DIR}/stream-${i}-${STREAM_NAME}.json"
+  OUTPUT_DIR="${RESULTS_DIR}/stream-${i}-${STREAM_NAME}"
 
   echo "==> Launching stream ${i}/${STREAM_COUNT}: ${STREAM_NAME} (concurrency=${CONCURRENCY})"
 
   CMD=(
-    aiperf
-    --url "${GATEWAY_URL}/v1/chat/completions"
+    aiperf profile
+    --url "${GATEWAY_URL}"
     --model "${MODEL_NAME}"
     --concurrency "${CONCURRENCY}"
-    --duration "${DURATION}"
-    --data "${DATA}"
-    --output "${OUTPUT_FILE}"
+    --benchmark-duration "${DURATION}"
+    --output-artifact-dir "${OUTPUT_DIR}"
   )
+
+  [[ -n "${ISL}" ]] && CMD+=(--isl "${ISL}")
+  [[ -n "${OSL}" ]] && CMD+=(--osl "${OSL}")
 
   if [[ "${STREAMING}" == "true" ]]; then
     CMD+=(--streaming)
@@ -104,7 +133,9 @@ for i in $(seq 1 "${STREAM_COUNT}"); do
     CMD+=(--request-count "${REQUEST_COUNT}")
   fi
 
-  CMD+=("${HEADER_ARGS[@]}")
+  if (( ${#HEADER_ARGS[@]} > 0 )); then
+    CMD+=("${HEADER_ARGS[@]}")
+  fi
 
   "${CMD[@]}" &
   PIDS+=($!)

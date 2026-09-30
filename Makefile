@@ -1,6 +1,7 @@
 .PHONY: help cluster-up cluster-down scale-up scale-down deploy deploy-no-fc teardown verify \
        benchmark-00 benchmark-01 benchmark-02 benchmark-03 benchmark-04 \
-       reset-benchmarks swap-fc-on swap-fc-off observability-port-forward
+       reset-benchmarks swap-fc-on swap-fc-off observability-port-forward \
+       notebook notebook-00 notebook-01 notebook-02 notebook-03 notebook-04
 
 SHELL := /bin/bash
 
@@ -82,3 +83,25 @@ benchmark-04: ## Run Scenario 4: Batch vs interactive (/v1/batches)
 
 reset-benchmarks: ## Wipe metrics and results for a fresh start
 	bash benchmarks/scripts/reset-run.sh
+
+# ---------------------------------------------------------------------------
+# Notebooks (alternative to Grafana for viewing benchmark results)
+# ---------------------------------------------------------------------------
+
+notebook: ## Launch Jupyter for all benchmark notebooks
+	uv run --extra notebook jupyter notebook benchmarks/notebook/
+
+notebook-00: ## Open Scenario 00 notebook (baseline without FC)
+	uv run --extra notebook jupyter notebook benchmarks/notebook/00-baseline-no-fc.ipynb
+
+notebook-01: ## Open Scenario 01 notebook (baseline with FC)
+	uv run --extra notebook jupyter notebook benchmarks/notebook/01-baseline-with-fc.ipynb
+
+notebook-02: ## Open Scenario 02 notebook (priority tiers)
+	uv run --extra notebook jupyter notebook benchmarks/notebook/02-priority-tiers.ipynb
+
+notebook-03: ## Open Scenario 03 notebook (intra-tier fairness)
+	uv run --extra notebook jupyter notebook benchmarks/notebook/03-intra-tier-fairness.ipynb
+
+notebook-04: ## Open Scenario 04 notebook (batch vs interactive)
+	uv run --extra notebook jupyter notebook benchmarks/notebook/04-batch-vs-interactive.ipynb

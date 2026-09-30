@@ -66,7 +66,7 @@ query_prometheus "ttft_p99" \
   "histogram_quantile(0.99, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le, model_name))"
 
 query_prometheus "kv_cache_utilization" \
-  "avg(vllm:gpu_cache_usage_perc) by (model_name)"
+  "avg(vllm:kv_cache_usage_perc) by (model_name)"
 
 query_prometheus "running_requests" \
   "sum(vllm:num_requests_running) by (model_name)"
@@ -74,11 +74,11 @@ query_prometheus "running_requests" \
 query_prometheus "waiting_requests" \
   "sum(vllm:num_requests_waiting) by (model_name)"
 
-query_prometheus "fc_inflight_requests" \
-  "sum(llm_d_flow_control_inflight_requests) by (priority_band)"
+query_prometheus "fc_queue_depth" \
+  "sum(llm_d_epp_flow_control_queue_size) by (priority)"
 
 query_prometheus "fc_shed_total" \
-  "sum(llm_d_flow_control_shed_requests_total) by (priority_band)"
+  "sum(rate(llm_d_epp_flow_control_requests_total{outcome!=\"Dispatched\"}[5m])) by (priority)"
 
 # ---------------------------------------------------------------------------
 # Summary

@@ -6,3 +6,11 @@ requires-python = ">=3.11"
 dependencies = [
     "aiperf",
 ]
+
+[project.optional-dependencies]
+notebook = [
+    "jupyter",
+    "plotly",
+    "pandas",
+    "requests",
+]

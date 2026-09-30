@@ -93,6 +93,49 @@ benchmarks/results/
         └── ...  (moved here by reset-run.sh)
 ```
 
+## Notebook Alternative (No Grafana Required)
+
+If you don't have Prometheus and Grafana deployed, or prefer a self-contained
+analysis, each scenario has a **Jupyter notebook** that:
+
+- Explains what the scenario tests and what flow control behavior to look for
+- Shows the exact `aiperf` commands (runnable directly from the notebook)
+- Queries Prometheus and recreates the Grafana dashboard panels as interactive
+  Plotly charts with hover highlighting
+- Serves as a standing record when committed with output
+
+### Prerequisites
+
+Install the notebook dependencies:
+
+```bash
+uv sync --extra notebook
+```
+
+Port-forward Prometheus (the notebooks check connectivity automatically):
+
+```bash
+kubectl port-forward -n llm-d-monitoring svc/prometheus 9090:9090 &
+```
+
+### Running a Notebook
+
+```bash
+# Open a specific scenario
+make notebook-02   # Priority tiers
+
+# Or browse all notebooks
+make notebook
+```
+
+| Notebook | Scenario | Dashboards Shown |
+|----------|----------|-----------------|
+| `notebook/00-baseline-no-fc.ipynb` | Baseline without FC | vLLM Backend Health |
+| `notebook/01-baseline-with-fc.ipynb` | Baseline with FC | vLLM Backend Health, Flow Control Overview |
+| `notebook/02-priority-tiers.ipynb` | Priority tiers | Flow Control Overview, Latency by Tier |
+| `notebook/03-intra-tier-fairness.ipynb` | Intra-tier fairness | Fairness Analysis |
+| `notebook/04-batch-vs-interactive.ipynb` | Batch vs interactive | Flow Control Overview, Latency by Tier |
+
 ## Comparing Results in Grafana
 
 1. **Annotations** — Each `run.sh` creates Grafana annotations at start/end.

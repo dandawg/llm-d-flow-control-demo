@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>llm-d Flow Control — Full Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700;900&family=Red+Hat+Text:wght@400;500;700&family=Red+Hat+Mono:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* ==========================================================================
+       TOKEN PALETTE — Red Hat brand
+       ========================================================================== */
+    :root {
+      --rh-red-50: #ee0000;
+      --rh-red-60: #a60000;
+      --rh-red-40: #f56e6e;
+      --rh-white: #ffffff;
+      --rh-black: #000000;
+      --rh-gray-10: #f2f2f2;
+      --rh-gray-20: #e0e0e0;
+      --rh-gray-30: #c7c7c7;
+      --rh-gray-40: #a3a3a3;
+      --rh-gray-45: #8c8c8c;
+      --rh-gray-50: #707070;
+      --rh-gray-60: #4d4d4d;
+      --rh-gray-70: #383838;
+      --rh-gray-80: #292929;
+      --rh-gray-90: #1f1f1f;
+      --rh-gray-95: #151515;
+      --rh-danger-orange-50: #f0561d;
+      --rh-yellow-30: #ffcc17;
+      --rh-yellow-40: #dca614;
+      --rh-green-40: #5ba352;
+      --rh-green-50: #3e8635;
+      --rh-blue-40: #4394e5;
+      --rh-purple-40: #a18fff;
+      --rh-teal-40: #37a3a3;
+    }
+
+    /* ==========================================================================
+       RESET & BASE
+       ========================================================================== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Red Hat Text", "Red Hat Display", sans-serif;
+      background: var(--rh-gray-95);
+      color: var(--rh-white);
+      overflow: hidden;
+    }
+
+    a { color: var(--rh-red-50); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--rh-red-40); text-decoration: underline; }
+
+    code {
+      font-family: 'Red Hat Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: rgba(238, 0, 0, 0.08);
+      color: var(--rh-red-40);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+    }
+
+    .red { color: var(--rh-red-50); }
+
+    /* ==========================================================================
+       DECK FRAMEWORK
+       ========================================================================== */
+    .deck {
+      display: flex;
+      transition: transform 0.45s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .slide {
+      min-width: 100vw;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4vh 4vw;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #counter {
+      position: fixed;
+      bottom: 1.2rem;
+      right: 1.5rem;
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 12px;
+      color: var(--rh-gray-50);
+      font-variant-numeric: tabular-nums;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--rh-red-50);
+      z-index: 100;
+      transition: width 0.4s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    /* ==========================================================================
+       SECTION DIVIDER SLIDES (chapter openers)
+       ========================================================================== */
+    .divider-slide {
+      text-align: center;
+      gap: 16px;
+    }
+
+    .divider-slide .eyebrow,
+    .content-slide .eyebrow {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--rh-gray-40);
+    }
+
+    .divider-slide h1,
+    .content-slide h1.section-title {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      font-weight: 900;
+      color: var(--rh-white);
+      line-height: 1.15;
+      text-align: center;
+    }
+
+    .divider-rule {
+      width: min(240px, 36vw);
+      height: 3px;
+      border: none;
+      background: var(--rh-red-50);
+      border-radius: 2px;
+    }
+
+    .divider-subtitle {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      color: var(--rh-gray-30);
+      max-width: 600px;
+      text-align: center;
+    }
+
+    /* ==========================================================================
+       TITLE SLIDE (Slide 1)
+       ========================================================================== */
+    .title-slide { text-align: center; gap: 20px; }
+
+    .badge {
+      display: inline-block;
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--rh-red-50);
+      border: 2px solid var(--rh-red-50);
+      border-radius: 6px;
+      padding: 4px 14px;
+    }
+
+    .title-slide h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 1.1;
+      font-weight: 900;
+      color: var(--rh-white);
+    }
+
+    .title-rule {
+      width: min(280px, 40vw);
+      height: 3px;
+      border: none;
+      background: linear-gradient(90deg, transparent, var(--rh-red-50), transparent);
+    }
+
+    .title-subtitle {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      line-height: 1.5;
+      color: var(--rh-gray-30);
+      max-width: 540px;
+    }
+
+    .title-tagline {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+      font-style: italic;
+      color: var(--rh-gray-45);
+    }
+
+    .presenter {
+      position: absolute;
+      bottom: 28px;
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 13px;
+      color: var(--rh-gray-50);
+      letter-spacing: 0.02em;
+    }
+
+    /* ==========================================================================
+       AGENDA SLIDE (Slide 2)
+       ========================================================================== */
+    .agenda-slide { gap: 20px; }
+
+    .agenda-slide h2 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--rh-white);
+      text-align: center;
+    }
+
+    .agenda-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: min(700px, 85vw);
+    }
+
+    .agenda-item {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--rh-gray-80);
+      border-left: 3px solid var(--rh-red-50);
+      border-radius: 0 8px 8px 0;
+      transition: background 0.2s;
+    }
+
+    .agenda-item:hover { background: var(--rh-gray-70); }
+
+    .agenda-num {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--rh-red-50);
+      text-align: center;
+      line-height: 1;
+    }
+
+    .agenda-text strong {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--rh-white);
+    }
+
+    .agenda-text .desc {
+      display: block;
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 12px;
+      color: var(--rh-gray-40);
+      margin-top: 1px;
+    }
+
+    .agenda-footnote {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 13px;
+      color: var(--rh-gray-50);
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* ==========================================================================
+       CONTENT SLIDES — shared building blocks
+       ========================================================================== */
+    .content-slide {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2vh;
+      padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+
+    .slide .content-slide { margin: auto; }
+
+    .content-slide h1 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 700;
+      color: var(--rh-red-50);
+      margin-top: 6px;
+    }
+
+    .content-slide h2 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 20px;
+      line-height: 26px;
+      font-weight: 700;
+      color: var(--rh-white);
+    }
+
+    .content-slide h3 {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 16px;
+      line-height: 22px;
+      font-weight: 700;
+      color: var(--rh-white);
+    }
+
+    .subtitle {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      color: var(--rh-gray-30);
+      max-width: 720px;
+    }
+    .subtitle strong { font-weight: 700; color: var(--rh-white); }
+
+    .divider { height: 1px; background: var(--rh-gray-70); }
+
+    .ref {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 12px;
+      color: var(--rh-gray-50);
+      padding-top: 4px;
+    }
+    .ref a {
+      color: var(--rh-red-50);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .ref a:hover { border-bottom-color: var(--rh-red-50); }
+
+    /* ==========================================================================
+       02a — THE PROBLEM
+       ========================================================================== */
+    .pain-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .pain-point { border-left: 3px solid var(--rh-red-50); padding-left: 14px; }
+    .pain-point-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .pain-point-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    .pools-row { display: flex; gap: 16px; margin-top: 16px; }
+    .pool-block { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 16px; flex: 1; text-align: center; background: var(--rh-gray-80); }
+    .pool-label { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); }
+    .pool-label.chat-label { color: var(--rh-red-50); }
+    .pool-label.api-label { color: var(--rh-yellow-30); }
+    .pool-label.batch-label { color: var(--rh-gray-40); }
+    .gpu-segments { display: flex; gap: 3px; justify-content: center; margin-top: 10px; margin-bottom: 6px; }
+    .gpu-seg { width: 16px; height: 22px; border-radius: 2px; border: 1px solid var(--rh-gray-70); }
+    .gpu-seg.lit { background: var(--rh-red-50); }
+    .gpu-seg.dim { background: var(--rh-gray-70); }
+    .pool-util { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 16px; color: var(--rh-gray-45); }
+
+    .waste-label { font-family: "Red Hat Text", sans-serif; font-size: 14px; font-weight: 500; color: var(--rh-gray-30); }
+    .waste-bar { display: flex; gap: 2px; margin-top: 8px; margin-bottom: 6px; }
+    .waste-seg { height: 10px; flex: 1; border-radius: 2px; }
+    .waste-seg.lit { background: var(--rh-red-50); }
+    .waste-seg.dim { background: var(--rh-gray-70); }
+    .waste-labels { display: flex; justify-content: space-between; }
+    .waste-labels span { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 16px; color: var(--rh-gray-45); }
+
+    .stat-strip {
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 8px;
+      padding: 20px 24px;
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-family: "Red Hat Display", sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--rh-white); }
+    .stat-value.good { color: var(--rh-green-40); }
+    .stat-value.warning { color: var(--rh-yellow-30); }
+    .stat-value.caution { color: var(--rh-danger-orange-50); }
+    .stat-label { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 16px; color: var(--rh-gray-45); margin-top: 2px; }
+
+    /* ==========================================================================
+       02b — THE SOLUTION
+       ========================================================================== */
+    .solution-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+    .solution-point { border-left: 3px solid var(--rh-green-40); padding-left: 14px; }
+    .solution-point-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .solution-point-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    .shared-pool { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 24px; background: var(--rh-gray-80); text-align: center; }
+    .gpu-row { display: flex; gap: 4px; justify-content: center; margin-top: 12px; margin-bottom: 8px; }
+    .gpu-row .gpu-seg { width: 24px; height: 28px; border-radius: 3px; }
+    .gpu-seg.chat { background: var(--rh-red-50); }
+    .gpu-seg.api { background: var(--rh-yellow-30); }
+    .gpu-seg.batch { background: var(--rh-gray-50); }
+    .gpu-seg.spare { background: var(--rh-gray-70); }
+
+    .legend { display: flex; gap: 24px; justify-content: center; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-family: "Red Hat Text", sans-serif; font-size: 12px; color: var(--rh-gray-30); }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+
+    /* ==========================================================================
+       03a — REQUEST LIFECYCLE
+       ========================================================================== */
+    .diagram-box {
+      font-family: 'Red Hat Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: clamp(0.58rem, 1vw, 0.82rem);
+      line-height: 1.45;
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 8px;
+      padding: 20px 28px;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--rh-gray-30);
+      align-self: center;
+      max-width: 100%;
+    }
+    .diagram-box .hl { color: var(--rh-red-50); font-weight: 700; }
+    .diagram-box .label { color: var(--rh-white); font-weight: 700; }
+    .diagram-box .green { color: var(--rh-green-40); font-weight: 700; }
+    .diagram-box .yellow { color: var(--rh-yellow-30); font-weight: 700; }
+    .diagram-box .dim { color: var(--rh-gray-50); }
+
+    /* ==========================================================================
+       ARCHITECTURE DIAGRAM — Slide 7  (HTML/CSS, replaces ASCII)
+       ========================================================================== */
+    .arch-diagram {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      padding: 6px 0;
+    }
+
+    .arch-node {
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .arch-node-label {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--rh-white);
+      line-height: 1.2;
+    }
+
+    .arch-node-sub {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 10px;
+      color: var(--rh-gray-50);
+      margin-top: 3px;
+    }
+
+    /* arrows (line + triangle) */
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 0 5px;
+      position: relative;
+    }
+    .arch-arrow::before {
+      content: '';
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--rh-gray-50);
+    }
+    .arch-arrow::after {
+      content: '';
+      display: block;
+      width: 0; height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid var(--rh-gray-50);
+    }
+    .arch-arrow .arrow-label {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Red Hat Mono', monospace;
+      font-size: 9px;
+      color: var(--rh-gray-45);
+      white-space: nowrap;
+    }
+
+    .arch-arrow-sm {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 0 3px;
+    }
+    .arch-arrow-sm::before {
+      content: '';
+      display: block;
+      width: 10px;
+      height: 2px;
+      background: var(--rh-gray-50);
+    }
+    .arch-arrow-sm::after {
+      content: '';
+      display: block;
+      width: 0; height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 5px solid var(--rh-gray-50);
+    }
+
+    /* EPP container */
+    .arch-epp {
+      flex: 1;
+      background: var(--rh-gray-90);
+      border: 2px solid var(--rh-red-50);
+      border-radius: 10px;
+      padding: 12px 14px 46px;
+      min-width: 0;
+    }
+    .arch-epp-header {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--rh-red-50);
+      margin-bottom: 8px;
+      text-align: center;
+      letter-spacing: 0.03em;
+    }
+    .arch-epp-header span {
+      color: var(--rh-gray-50);
+      font-weight: 400;
+    }
+
+    .arch-epp-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      position: relative;
+    }
+
+    /* Below-saturation bypass arc (runs under the stages) */
+    .arch-bypass {
+      position: absolute;
+      bottom: -22px;
+      left: 12%;
+      right: 12%;
+      height: 16px;
+      border: 2px dashed var(--rh-green-40);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      pointer-events: none;
+    }
+    .arch-bypass::after {
+      content: '';
+      position: absolute;
+      right: -2px;
+      top: -5px;
+      width: 0; height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 6px solid var(--rh-green-40);
+    }
+    .arch-bypass-label {
+      position: absolute;
+      bottom: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--rh-green-40);
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    /* stages inside EPP */
+    .arch-stage {
+      flex: 1;
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 6px;
+      padding: 10px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .arch-stage-label {
+      font-family: "Red Hat Display", sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--rh-white);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .arch-stage-detail {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 10px;
+      color: var(--rh-gray-40);
+      line-height: 1.4;
+    }
+
+    /* priority tier pills */
+    .arch-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 2px;
+    }
+    .arch-tier {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-align: center;
+    }
+    .arch-tier.t-premium  { background: rgba(238,0,0,0.12);   color: var(--rh-red-40); }
+    .arch-tier.t-standard { background: rgba(255,204,23,0.08); color: var(--rh-yellow-30); }
+    .arch-tier.t-batch    { background: rgba(112,112,112,0.12); color: var(--rh-gray-40); }
+
+    /* backend pod column */
+    .arch-backends {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .arch-backends .arch-node { padding: 8px 12px; }
+    .arch-backends .arch-node-label { font-size: 11px; }
+
+    /* footnote bar */
+    .arch-footnote {
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 6px;
+      padding: 10px 16px;
+      text-align: center;
+    }
+    .arch-footnote p {
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 12px;
+      color: var(--rh-gray-45);
+      line-height: 1.5;
+    }
+
+    .path-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .path-card { border-radius: 8px; padding: 16px 20px; }
+    .path-card.direct { background: rgba(91,163,82,0.08); border: 1px solid rgba(91,163,82,0.3); border-left: 4px solid var(--rh-green-40); }
+    .path-card.queued { background: rgba(255,204,23,0.05); border: 1px solid rgba(255,204,23,0.25); border-left: 4px solid var(--rh-yellow-30); }
+    .path-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; }
+    .path-card.direct h3 { color: var(--rh-green-40); }
+    .path-card.queued h3 { color: var(--rh-yellow-30); }
+    .path-card p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    .detect-box { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; display: flex; gap: 24px; align-items: flex-start; }
+    .detect-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+    .detect-body h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); }
+    .detect-body p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    /* ==========================================================================
+       03b — DISPATCH & HEADERS
+       ========================================================================== */
+    .tiers-detail { display: flex; flex-direction: column; gap: 12px; }
+    .tier-card { background: var(--rh-gray-80); border-radius: 8px; padding: 14px 20px; display: flex; gap: 14px; align-items: flex-start; }
+    .tier-card.t1 { border-left: 4px solid var(--rh-red-50); }
+    .tier-card.t2 { border-left: 4px solid var(--rh-yellow-30); }
+    .tier-card.t3 { border-left: 4px solid var(--rh-gray-50); }
+    .tier-num { font-family: "Red Hat Display", sans-serif; font-size: 28px; font-weight: 900; line-height: 1; flex-shrink: 0; min-width: 32px; text-align: center; }
+    .tier-card.t1 .tier-num { color: var(--rh-red-50); }
+    .tier-card.t2 .tier-num { color: var(--rh-yellow-30); }
+    .tier-card.t3 .tier-num { color: var(--rh-gray-50); }
+    .tier-body h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .tier-body p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 3px; }
+
+    .dispatch-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .step { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 16px; text-align: center; position: relative; }
+    .step-num { font-family: "Red Hat Display", sans-serif; font-size: 22px; font-weight: 900; color: var(--rh-red-50); line-height: 1; }
+    .step h3 { font-family: "Red Hat Display", sans-serif; font-size: 13px; font-weight: 700; color: var(--rh-white); margin-top: 8px; }
+    .step p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); margin-top: 4px; }
+    .step-arrow { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--rh-gray-45); z-index: 1; }
+
+    /* ==========================================================================
+       03c — HEADERS & DEFAULTS
+       ========================================================================== */
+    .headers-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .header-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; }
+    .header-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); margin-bottom: 10px; }
+    .header-card .header-name { font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 12px; color: var(--rh-red-40); background: rgba(238,0,0,0.08); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 12px; }
+    .header-example { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--rh-gray-70); }
+    .header-example:last-child { border-bottom: none; }
+    .header-val { font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 12px; color: var(--rh-gray-30); }
+    .header-maps { font-family: "Red Hat Text", sans-serif; font-size: 12px; color: var(--rh-gray-45); }
+    .header-card p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 6px; }
+
+    /* Request excerpt with annotations */
+    .request-excerpt-wrapper { display: block; }
+    .request-excerpt { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 12.5px; line-height: 22px; color: var(--rh-gray-30); white-space: pre; overflow-x: auto; }
+    .request-excerpt .req-method { color: var(--rh-green-40); font-weight: 700; }
+    .request-excerpt .req-path { color: var(--rh-white); }
+    .request-excerpt .req-header-key { color: var(--rh-gray-45); }
+    .request-excerpt .req-header-val { color: var(--rh-white); }
+    .request-excerpt .req-highlight { position: relative; }
+    .request-excerpt .req-highlight-priority { background: rgba(238, 0, 0, 0.12); border-radius: 3px; padding: 1px 4px; margin: -1px -4px; display: inline; }
+    .request-excerpt .req-highlight-fairness { background: rgba(67, 148, 229, 0.14); border-radius: 3px; padding: 1px 4px; margin: -1px -4px; display: inline; }
+    .request-excerpt .req-body { color: var(--rh-gray-50); }
+    .req-inline-annotation { font-family: "Red Hat Display", sans-serif; font-weight: 700; font-size: 11.5px; }
+    .req-inline-annotation.priority { color: var(--rh-red-40); }
+    .req-inline-annotation.fairness { color: var(--rh-blue-40); }
+    .annotation-notes { display: flex; gap: 24px; margin-top: 12px; }
+    .annotation-note { display: flex; align-items: flex-start; gap: 8px; flex: 1; }
+    .annotation-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .annotation-dot.priority { background: var(--rh-red-40); }
+    .annotation-dot.fairness { background: var(--rh-blue-40); }
+    .annotation-note p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 18px; color: var(--rh-gray-45); margin: 0; }
+    .trust-disclaimer { display: flex; align-items: flex-start; gap: 10px; background: rgba(240, 86, 29, 0.08); border: 1px solid rgba(240, 86, 29, 0.25); border-radius: 8px; padding: 14px 18px; margin-top: 4px; }
+    .trust-disclaimer .disclaimer-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .trust-disclaimer p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 18px; color: var(--rh-gray-30); }
+    .trust-disclaimer strong { color: var(--rh-danger-orange-50); font-weight: 700; }
+
+    .defaults { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .default-card { background: var(--rh-gray-80); border-left: 3px solid var(--rh-green-40); border-radius: 0 8px 8px 0; padding: 16px 20px; }
+    .default-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); margin-bottom: 4px; }
+    .default-card p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); }
+
+    .callout-box { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; text-align: center; }
+    .callout-box p { font-family: "Red Hat Text", sans-serif; font-size: 14px; line-height: 22px; color: var(--rh-gray-30); }
+    .callout-box strong { color: var(--rh-white); font-weight: 700; }
+
+    /* ==========================================================================
+       04a — SAVE MONEY
+       ========================================================================== */
+    .compare { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 0; align-items: stretch; }
+    .compare-panel { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 24px; background: var(--rh-gray-80); }
+    .compare-panel.after { border-color: var(--rh-green-40); }
+    .compare-arrow { display: flex; align-items: center; justify-content: center; font-family: "Red Hat Display", sans-serif; font-size: 24px; color: var(--rh-gray-45); }
+    .compare-heading { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-gray-45); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+    .compare-panel.after .compare-heading { color: var(--rh-green-40); }
+    .compare-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--rh-gray-70); }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-label { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); }
+    .compare-value { font-family: "Red Hat Display", sans-serif; font-size: 16px; font-weight: 700; color: var(--rh-white); }
+    .compare-panel.after .compare-value { color: var(--rh-green-40); }
+
+    .levers { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .lever { border-left: 3px solid var(--rh-green-40); padding-left: 14px; }
+    .lever-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .lever-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    /* ==========================================================================
+       04b — PROTECT USERS
+       ========================================================================== */
+    .scenario { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .scenario-panel { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px; background: var(--rh-gray-80); }
+    .scenario-heading { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-gray-45); margin-bottom: 16px; }
+    .scenario-panel.good .scenario-heading { color: var(--rh-green-40); }
+    .latency-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .latency-row:last-child { margin-bottom: 0; }
+    .latency-label { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); width: 50px; flex-shrink: 0; }
+    .latency-bar-track { flex: 1; height: 16px; background: var(--rh-gray-70); border-radius: 3px; overflow: hidden; }
+    .latency-bar-fill { height: 100%; border-radius: 3px; }
+    .latency-value { font-family: "Red Hat Display", sans-serif; font-size: 13px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
+
+    .outcomes { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; }
+    .outcome { border-left: 3px solid var(--rh-green-40); padding-left: 14px; }
+    .outcome-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .outcome-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    /* ==========================================================================
+       04c — FAIR SHARING
+       ========================================================================== */
+    .fairness-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .fairness-panel { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px; background: var(--rh-gray-80); }
+    .fairness-heading { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-gray-45); margin-bottom: 16px; }
+    .fairness-panel.good .fairness-heading { color: var(--rh-green-40); }
+    .tenant-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .tenant-row:last-child { margin-bottom: 0; }
+    .tenant-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .tenant-name { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); width: 70px; flex-shrink: 0; }
+    .tenant-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .bar-group { display: flex; align-items: center; gap: 8px; }
+    .bar-label { font-family: "Red Hat Text", sans-serif; font-size: 11px; color: var(--rh-gray-45); width: 46px; flex-shrink: 0; text-align: right; }
+    .bar-track { flex: 1; height: 12px; background: var(--rh-gray-70); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 2px; }
+    .bar-value { font-family: "Red Hat Display", sans-serif; font-size: 12px; font-weight: 700; width: 32px; flex-shrink: 0; }
+
+    .use-cases { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; }
+    .use-case { border-left: 3px solid var(--rh-red-50); padding-left: 14px; }
+    .use-case-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .use-case-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    /* ==========================================================================
+       04d — OPERATIONAL WINS
+       ========================================================================== */
+    .wins { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .win-card { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px; background: var(--rh-gray-80); display: flex; flex-direction: column; gap: 10px; }
+    .win-icon { font-size: 28px; line-height: 1; }
+    .win-title { font-family: "Red Hat Display", sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .win-body { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); }
+    .win-body strong { color: var(--rh-white); font-weight: 700; }
+
+    .key-points { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .key-point { border-left: 3px solid var(--rh-red-50); padding-left: 14px; }
+    .key-point.green { border-color: var(--rh-green-40); }
+    .key-point.amber { border-color: var(--rh-yellow-30); }
+    .key-point-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .key-point-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    /* ==========================================================================
+       05a — CONFIGURATION INPUTS
+       ========================================================================== */
+    .concepts { display: flex; flex-direction: column; gap: 12px; }
+    .concept-card { background: var(--rh-gray-80); border-radius: 8px; padding: 14px 20px; display: flex; gap: 14px; align-items: flex-start; }
+    .concept-card.c1 { border-left: 4px solid var(--rh-red-50); }
+    .concept-card.c2 { border-left: 4px solid var(--rh-yellow-30); }
+    .concept-card.c3 { border-left: 4px solid var(--rh-green-40); }
+    .concept-card.c4 { border-left: 4px solid #6dbdff; }
+    .concept-card.c5 { border-left: 4px solid var(--rh-gray-45); }
+    .concept-num { font-family: "Red Hat Display", sans-serif; font-size: 28px; font-weight: 900; line-height: 1; flex-shrink: 0; min-width: 32px; text-align: center; }
+    .concept-card.c1 .concept-num { color: var(--rh-red-50); }
+    .concept-card.c2 .concept-num { color: var(--rh-yellow-30); }
+    .concept-card.c3 .concept-num { color: var(--rh-green-40); }
+    .concept-card.c4 .concept-num { color: #6dbdff; }
+    .concept-card.c5 .concept-num { color: var(--rh-gray-45); }
+    .concept-body h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .concept-body p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 3px; }
+
+    .yaml-block {
+      background: var(--rh-gray-80);
+      border: 1px solid var(--rh-gray-60);
+      border-radius: 8px;
+      padding: 20px 24px;
+      font-family: 'Red Hat Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: clamp(0.7rem, 1.1vw, 0.82rem);
+      line-height: 1.55;
+      color: var(--rh-gray-30);
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .yaml-block .key { color: #6dbdff; }
+    .yaml-block .str { color: #a8e6a1; }
+    .yaml-block .num { color: var(--rh-yellow-30); }
+    .yaml-block .comment { color: var(--rh-gray-50); font-style: italic; }
+
+    .io-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .io-card { background: var(--rh-gray-80); border-radius: 8px; padding: 16px 20px; }
+    .io-card.inputs { border-top: 3px solid var(--rh-red-50); }
+    .io-card.outputs { border-top: 3px solid var(--rh-green-40); }
+    .io-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .io-card.inputs h3 { color: var(--rh-red-50); }
+    .io-card.outputs h3 { color: var(--rh-green-40); }
+    .io-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .io-list li { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); padding-left: 16px; position: relative; }
+    .io-list li::before { content: '›'; position: absolute; left: 2px; font-weight: 700; }
+    .io-card.inputs .io-list li::before { color: var(--rh-red-50); }
+    .io-card.outputs .io-list li::before { color: var(--rh-green-40); }
+
+    /* ==========================================================================
+       05b — TUNING KNOBS
+       ========================================================================== */
+    .knob-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "Red Hat Text", sans-serif;
+      font-size: 13px;
+      line-height: 19px;
+    }
+    .knob-table thead th { font-family: "Red Hat Display", sans-serif; font-size: 12px; font-weight: 700; color: var(--rh-gray-45); text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--rh-red-50); text-transform: uppercase; letter-spacing: 0.5px; }
+    .knob-table tbody td { padding: 8px 12px; border-bottom: 1px solid var(--rh-gray-70); vertical-align: top; }
+    .knob-table tbody tr:hover { background: var(--rh-gray-80); }
+    .knob-table .desc-col { color: var(--rh-gray-30); }
+    .knob-table .example-value { color: var(--rh-green-40); font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 13px; }
+    .knob-table .symptom-col { color: var(--rh-gray-40); font-size: 12px; }
+
+    .how-to { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; }
+    .how-to h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); margin-bottom: 12px; }
+    .how-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .how-step { text-align: center; position: relative; }
+    .how-step-num { font-family: "Red Hat Display", sans-serif; font-size: 22px; font-weight: 900; color: var(--rh-red-50); line-height: 1; }
+    .how-step p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); margin-top: 6px; }
+    .how-step-arrow { position: absolute; right: -10px; top: 8px; font-size: 14px; color: var(--rh-gray-45); z-index: 1; }
+
+    /* compact variant for dense slides (e.g. Tuning knobs) */
+    .content-slide.compact { gap: 1vh; }
+    .compact .subtitle { font-size: 14px; line-height: 20px; }
+    .compact .knob-table { font-size: 12px; line-height: 17px; }
+    .compact .knob-table thead th { font-size: 11px; padding: 5px 10px; }
+    .compact .knob-table tbody td { padding: 5px 10px; }
+    .compact .knob-table .example-value { font-size: 12px; }
+    .compact .knob-table .symptom-col { font-size: 11px; }
+    .compact .how-to { padding: 12px 18px; }
+    .compact .how-to h3 { font-size: 14px; margin-bottom: 8px; }
+    .compact .how-step-num { font-size: 18px; }
+    .compact .how-step p { font-size: 11px; line-height: 15px; margin-top: 4px; }
+
+    .mode-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .mode-group { margin-bottom: 10px; }
+    .mode-group-label { font-family: "Red Hat Display", sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rh-gray-30); margin-bottom: 6px; }
+    .mode-row.single { grid-template-columns: 1fr; max-width: 33.333%; }
+    .mode-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 14px 16px; }
+    .mode-card.active { border-color: var(--rh-green-40); background: rgba(91,163,82,0.06); }
+    .mode-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); margin-bottom: 4px; }
+    .mode-card .mode-tag { font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 11px; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 6px; }
+    .mode-card.active .mode-tag { background: rgba(91,163,82,0.15); color: var(--rh-green-40); }
+    .mode-card:not(.active) .mode-tag { background: rgba(238,0,0,0.08); color: var(--rh-red-40); }
+    .mode-card p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); }
+
+    /* ==========================================================================
+       06a — DASHBOARDS
+       ========================================================================== */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; width: min(860px, 90vw); }
+    .dash-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; transition: background 0.2s, border-color 0.2s; }
+    .dash-card:hover { border-color: var(--rh-red-50); }
+    .dash-card-header { display: flex; align-items: center; gap: 8px; }
+    .dash-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .dash-card-header strong { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); }
+    .dash-desc { font-family: "Red Hat Text", sans-serif; font-size: 12px; color: var(--rh-red-40); font-style: italic; }
+    .dash-metrics { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+    .dash-metrics li { font-family: "Red Hat Text", sans-serif; font-size: 12px; color: var(--rh-gray-30); padding-left: 14px; position: relative; line-height: 1.5; }
+    .dash-metrics li::before { content: '›'; position: absolute; left: 2px; color: var(--rh-red-50); font-weight: 700; }
+
+    /* ==========================================================================
+       06b — SIGNALS & RUNBOOK
+       ========================================================================== */
+    .state-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .state-card { background: var(--rh-gray-80); border-radius: 8px; padding: 16px 18px; border-top: 3px solid; }
+    .state-card.healthy { border-top-color: var(--rh-green-40); }
+    .state-card.pressure { border-top-color: var(--rh-yellow-30); }
+    .state-card.overload { border-top-color: var(--rh-red-50); }
+    .state-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); margin-bottom: 8px; }
+
+    .signal-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .signal-list li { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); padding-left: 20px; position: relative; }
+    .signal-list li::before { content: attr(data-icon); position: absolute; left: 0; font-size: 0.85em; }
+    .state-quote { font-family: "Red Hat Text", sans-serif; font-size: 11px; font-style: italic; color: var(--rh-gray-45); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--rh-gray-70); }
+
+    .lifecycle { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .lc-step { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 12px 10px; text-align: center; position: relative; }
+    .lc-step-num { font-family: "Red Hat Display", sans-serif; font-size: 18px; font-weight: 900; line-height: 1; }
+    .lc-step:nth-child(1) .lc-step-num { color: var(--rh-gray-45); }
+    .lc-step:nth-child(2) .lc-step-num { color: var(--rh-yellow-30); }
+    .lc-step:nth-child(3) .lc-step-num { color: var(--rh-red-50); }
+    .lc-step:nth-child(4) .lc-step-num { color: var(--rh-danger-orange-50); }
+    .lc-step:nth-child(5) .lc-step-num { color: var(--rh-green-40); }
+    .lc-step h4 { font-family: "Red Hat Display", sans-serif; font-size: 11px; font-weight: 700; color: var(--rh-white); margin-top: 6px; }
+    .lc-step p { font-family: "Red Hat Text", sans-serif; font-size: 10px; line-height: 14px; color: var(--rh-gray-40); margin-top: 3px; }
+    .lc-arrow { position: absolute; right: -7px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--rh-gray-45); z-index: 1; }
+
+    .runbook { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .runbook-card { background: var(--rh-gray-80); border-radius: 8px; padding: 14px 18px; border-left: 3px solid; }
+    .runbook-card.critical { border-left-color: var(--rh-red-50); }
+    .runbook-card.high { border-left-color: var(--rh-danger-orange-50); }
+    .runbook-card.warning { border-left-color: var(--rh-yellow-30); }
+    .runbook-card.medium { border-left-color: #6dbdff; }
+    .runbook-card .severity { font-family: "Red Hat Text", sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .runbook-card.critical .severity { color: var(--rh-red-50); }
+    .runbook-card.high .severity { color: var(--rh-danger-orange-50); }
+    .runbook-card.warning .severity { color: var(--rh-yellow-30); }
+    .runbook-card.medium .severity { color: #6dbdff; }
+    .runbook-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); margin-bottom: 4px; }
+    .runbook-card p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); }
+    .runbook-card .action { font-family: "Red Hat Text", sans-serif; font-size: 11px; color: var(--rh-gray-40); margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--rh-gray-70); }
+    .runbook-card .action strong { color: var(--rh-white); font-weight: 700; }
+
+    /* ==========================================================================
+       06a — OBSERVABILITY
+       ========================================================================== */
+    .metric-table { width: 100%; border-collapse: collapse; font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; }
+    .metric-table thead th { font-family: "Red Hat Display", sans-serif; font-size: 12px; font-weight: 700; color: var(--rh-gray-45); text-align: left; padding: 7px 10px; border-bottom: 2px solid var(--rh-red-50); text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-table tbody td { padding: 6px 10px; border-bottom: 1px solid var(--rh-gray-70); vertical-align: top; }
+    .metric-table tbody tr:hover { background: var(--rh-gray-80); }
+    .metric-table .desc-col { color: var(--rh-gray-30); }
+    .metric-table .label-col { color: var(--rh-gray-40); font-size: 12px; }
+
+    .derived-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .derived-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 16px 18px; }
+    .derived-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); margin-bottom: 6px; }
+    .derived-card p { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); }
+    .derived-card .formula { font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 11px; color: var(--rh-gray-40); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--rh-gray-70); }
+
+    .stack-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .stack-card { background: var(--rh-gray-80); border-radius: 8px; padding: 16px 20px; }
+    .stack-card.prom { border-top: 3px solid var(--rh-danger-orange-50); }
+    .stack-card.bench { border-top: 3px solid #6dbdff; }
+    .stack-card h3 { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); margin-bottom: 6px; }
+    .stack-card p { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); }
+    .stack-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+    .stack-list li { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); padding-left: 16px; position: relative; }
+    .stack-list li::before { content: '›'; position: absolute; left: 2px; color: var(--rh-red-50); font-weight: 700; }
+    .stack-list li strong { color: var(--rh-white); font-weight: 700; }
+
+    /* ==========================================================================
+       07 — RED HAT AI
+       ========================================================================== */
+    .value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: min(880px, 90vw); }
+    .value-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s; }
+    .value-card:hover { border-color: var(--rh-red-50); }
+    .value-icon { font-size: 26px; line-height: 1; }
+    .value-card strong { font-family: "Red Hat Display", sans-serif; font-size: 15px; font-weight: 700; color: var(--rh-white); line-height: 1.3; }
+    .value-card .detail { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); line-height: 1.5; }
+    .value-card .detail strong { font-size: 13px; }
+
+    .availability-strip { display: flex; gap: 24px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .avail-item { display: flex; align-items: center; gap: 8px; font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); }
+    .avail-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rh-green-40); flex-shrink: 0; }
+    .avail-item strong { color: var(--rh-white); font-weight: 700; }
+
+    .deploy-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: min(880px, 90vw); align-items: start; }
+    .deploy-panel { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px; }
+    .deploy-panel h3 { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+    .step-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+    .step-list li { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); padding-left: 28px; position: relative; line-height: 1.5; counter-increment: step; }
+    .step-list li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 20px; height: 20px; background: var(--rh-red-50); color: var(--rh-white); font-family: "Red Hat Display", sans-serif; font-size: 11px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .deploy-yaml { margin-top: 12px; background: var(--rh-gray-95); border: 1px solid var(--rh-gray-60); border-radius: 6px; padding: 12px 16px; font-family: 'Red Hat Mono', 'SF Mono', monospace; font-size: 12px; line-height: 1.5; color: var(--rh-gray-30); overflow-x: auto; white-space: pre; }
+    .deploy-yaml .yk { color: #6dbdff; }
+    .deploy-yaml .ys { color: #a8e6a1; }
+    .deploy-yaml .yc { color: var(--rh-gray-50); font-style: italic; }
+
+    .compare-note { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 1.5; color: var(--rh-gray-30); text-align: center; max-width: 700px; }
+    .compare-note strong { color: var(--rh-white); font-weight: 700; }
+
+    /* ==========================================================================
+       08 — SUMMARY & NEXT STEPS
+       ========================================================================== */
+    .takeaway-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(900px, 90vw); }
+    .takeaway-card { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.2s; }
+    .takeaway-card:hover { border-color: var(--rh-red-50); }
+    .takeaway-icon { font-size: 24px; line-height: 1; }
+    .takeaway-card strong { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); line-height: 1.3; }
+    .takeaway-card .detail { font-family: "Red Hat Text", sans-serif; font-size: 12px; color: var(--rh-gray-40); line-height: 1.5; }
+
+    .resources-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: min(860px, 90vw); align-items: start; }
+    .resources-panel { background: var(--rh-gray-80); border-radius: 8px; padding: 20px; border: 1px solid var(--rh-gray-60); }
+    .resources-panel h3 { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .try-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .try-list li { font-family: "Red Hat Text", sans-serif; font-size: 14px; color: var(--rh-gray-30); padding-left: 18px; position: relative; line-height: 1.5; }
+    .try-list li::before { content: '▸'; position: absolute; left: 0; color: var(--rh-red-50); font-weight: 700; }
+    .try-list .cost-note { color: var(--rh-gray-45); font-size: 13px; font-style: italic; }
+    .link-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .link-list li { font-size: 13px; line-height: 1.5; }
+    .link-list li a { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 5px; transition: background 0.2s; border-bottom: none; }
+    .link-list li a:hover { background: rgba(238,0,0,0.08); text-decoration: none; }
+    .link-emoji { font-size: 1.05em; }
+    .questions-cta { font-family: "Red Hat Display", sans-serif; font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; color: var(--rh-red-50); text-align: center; margin-top: 8px; }
+
+    /* 08b — DECISION GUIDE */
+    .table-panel { border: 1px solid var(--rh-gray-60); border-radius: 8px; background: var(--rh-gray-80); overflow: hidden; }
+    .table-panel table { width: 100%; border-collapse: collapse; font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; }
+    .table-panel th { font-family: "Red Hat Display", sans-serif; font-size: 12px; font-weight: 700; color: var(--rh-gray-45); text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rh-gray-60); text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-panel td { padding: 10px 12px; border-bottom: 1px solid var(--rh-gray-70); vertical-align: top; }
+    .table-panel tr:last-child td { border-bottom: none; }
+    .condition { color: var(--rh-white); font-weight: 500; }
+    .reason { color: var(--rh-gray-30); }
+    .indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; position: relative; top: -1px; }
+    .indicator.yes { background: var(--rh-green-40); }
+    .indicator.no { background: var(--rh-danger-orange-50); }
+
+    /* 08c — ROI */
+    .roi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .roi-card { border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 18px; background: var(--rh-gray-80); }
+    .roi-card.highlight { border-color: var(--rh-green-40); }
+    .roi-card-heading { font-family: "Red Hat Display", sans-serif; font-size: 12px; font-weight: 700; color: var(--rh-gray-45); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .roi-card.highlight .roi-card-heading { color: var(--rh-green-40); }
+    .roi-item { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--rh-gray-70); }
+    .roi-item:last-child { border-bottom: none; }
+    .roi-label { font-family: "Red Hat Text", sans-serif; font-size: 13px; color: var(--rh-gray-30); }
+    .roi-value { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); }
+    .roi-card.highlight .roi-value { color: var(--rh-green-40); }
+
+    .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+    .timeline::before { content: ""; position: absolute; top: 14px; left: 20px; right: 20px; height: 2px; background: var(--rh-gray-60); }
+    .timeline-step { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
+    .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rh-red-50); border: 2px solid var(--rh-gray-95); z-index: 1; }
+    .timeline-label { font-family: "Red Hat Display", sans-serif; font-size: 14px; font-weight: 700; color: var(--rh-white); text-align: center; }
+    .timeline-desc { font-family: "Red Hat Text", sans-serif; font-size: 12px; line-height: 17px; color: var(--rh-gray-30); text-align: center; max-width: 160px; }
+
+    .risk-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .risk-point { border-left: 3px solid var(--rh-green-40); padding-left: 14px; }
+    .risk-title { font-family: "Red Hat Display", sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: var(--rh-white); }
+    .risk-desc { font-family: "Red Hat Text", sans-serif; font-size: 13px; line-height: 19px; color: var(--rh-gray-30); margin-top: 4px; }
+
+    .cta { background: var(--rh-gray-80); border: 1px solid var(--rh-gray-60); border-radius: 8px; padding: 20px 24px; text-align: center; }
+    .cta-text { font-family: "Red Hat Text", sans-serif; font-size: 14px; line-height: 20px; color: var(--rh-gray-30); }
+    .cta-text strong { color: var(--rh-white); font-weight: 700; }
+
+    /* ==========================================================================
+       PRINT
+       ========================================================================== */
+    @media print {
+      body { overflow: visible; }
+      .deck { display: block; transform: none !important; }
+      .slide { page-break-after: always; page-break-inside: avoid; height: 100vh; min-width: unset; width: 100%; }
+      #counter, #progress { display: none; }
+    }
+
+    @media (max-height: 700px) {
+      .content-slide { gap: 1.2vh; }
+      .content-slide h1 { font-size: 22px; line-height: 28px; }
+      .content-slide h2 { font-size: 16px; line-height: 22px; }
+      .subtitle { font-size: 13px; line-height: 19px; }
+      .pain-point-desc, .tier-ov-desc, .outcome-desc, .use-case-desc,
+      .win-body, .key-point-desc, .lever-desc, .tier-body p, .concept-body p,
+      .path-card p, .detect-body p, .header-card p, .default-card p { font-size: 12px; line-height: 17px; }
+      .stat-strip { padding: 12px 16px; gap: 24px; }
+      .stat-value { font-size: 20px; }
+      .divider { margin: 0; }
+      .table-panel table { font-size: 12px; line-height: 17px; }
+      .table-panel th { font-size: 11px; padding: 5px 10px; }
+      .table-panel td { padding: 6px 10px; }
+      .callout-box { padding: 14px 18px; }
+      .callout-box p { font-size: 12px; line-height: 17px; }
+    }
+
+    @media (max-width: 700px) {
+      .pain-points, .tiers-overview, .outcomes, .use-cases, .wins { grid-template-columns: 1fr; }
+      .headers-section, .defaults, .scenario, .fairness-demo, .levers, .key-points, .io-row, .deploy-columns, .resources-columns, .stack-row, .runbook { grid-template-columns: 1fr; }
+      .annotation-notes { flex-direction: column; gap: 8px; }
+      .dispatch-steps, .how-steps { grid-template-columns: 1fr 1fr; }
+      .step-arrow, .how-step-arrow, .lc-arrow { display: none; }
+      .value-grid, .takeaway-grid, .roi-grid, .risk-points, .state-row, .derived-row, .mode-row { grid-template-columns: 1fr; }
+      .mode-row.single { max-width: 100%; }
+      .lifecycle { grid-template-columns: 1fr 1fr; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .path-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 1 — TITLE                                                        ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide title-slide">
+    <span class="badge">llm-d</span>
+    <h1><span class="red">Flow Control</span> for<br>Shared GPU Inference</h1>
+    <hr class="title-rule">
+    <p class="title-subtitle">
+      Priority, fairness, and cost efficiency<br>
+      for multi-tenant LLM serving on Kubernetes
+    </p>
+    <p class="title-tagline">"Turning expensive GPU pools into multi-workload platforms"</p>
+    <p class="presenter">Your Name &bull; Your Team &bull; 2026</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 2 — AGENDA                                                       ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide agenda-slide">
+    <h2>What we'll cover</h2>
+    <ol class="agenda-list">
+      <li class="agenda-item"><span class="agenda-num">1</span><div class="agenda-text"><strong>The challenge</strong><span class="desc">Why shared GPU inference is hard — and how flow control solves it</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">2</span><div class="agenda-text"><strong>How flow control works</strong><span class="desc">The 3-tier dispatch hierarchy: priority, fairness, ordering</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">3</span><div class="agenda-text"><strong>The business value</strong><span class="desc">Cost savings, user protection, fair sharing, operational wins</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">4</span><div class="agenda-text"><strong>Deploy &amp; configure</strong><span class="desc">What it takes to get started — Helm values, CRDs, and tuning</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">5</span><div class="agenda-text"><strong>Operations</strong><span class="desc">Monitoring, dashboards, and responding to signals</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">6</span><div class="agenda-text"><strong>Red Hat AI</strong><span class="desc">Enterprise-ready flow control on OpenShift AI</span></div></li>
+      <li class="agenda-item"><span class="agenda-num">7</span><div class="agenda-text"><strong>Summary &amp; next steps</strong><span class="desc">Key takeaways, decision guide, ROI, and getting started</span></div></li>
+    </ol>
+    <p class="agenda-footnote">Reference slides available for deep-dive Q&amp;A</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 3 — SECTION: THE CHALLENGE                                       ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide divider-slide">
+    <div class="eyebrow">The challenge</div>
+    <h1>The <span class="red">problem</span> &amp; the solution</h1>
+    <hr class="divider-rule">
+    <p class="divider-subtitle">Why shared GPU inference is hard — and how flow control fixes it</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 4 — THE PROBLEM                                                  ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">The problem</div><h1>GPUs are expensive and shared poorly</h1></div>
+      <p class="subtitle">The standard approach: <strong>one pool per workload</strong>. Simple to reason about. Financially brutal.</p>
+      <div class="pain-points">
+        <div class="pain-point"><div class="pain-point-title">Low utilization</div><div class="pain-point-desc">Each pool sized for peak. Peaks rarely align.</div></div>
+        <div class="pain-point"><div class="pain-point-title">No burst absorption</div><div class="pain-point-desc">Spikes can't borrow idle capacity from neighbors.</div></div>
+        <div class="pain-point"><div class="pain-point-title">Operational sprawl</div><div class="pain-point-desc">Every pool is a separate deployment to manage.</div></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <h2>Today: pool-per-workload <span style="font-weight:400;font-size:14px;color:var(--rh-gray-45);font-style:italic;">(e.g. chat, API, batch)</span></h2>
+        <div class="pools-row">
+          <div class="pool-block"><div class="pool-label chat-label">Chat</div><div class="gpu-segments"><div class="gpu-seg chat"></div><div class="gpu-seg chat"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div></div><div class="pool-util">~30% utilized</div></div>
+          <div class="pool-block"><div class="pool-label api-label">API</div><div class="gpu-segments"><div class="gpu-seg api"></div><div class="gpu-seg api"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div></div><div class="pool-util">~40% utilized</div></div>
+          <div class="pool-block"><div class="pool-label batch-label">Batch</div><div class="gpu-segments"><div class="gpu-seg batch"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div><div class="gpu-seg dim"></div></div><div class="pool-util">~25% utilized</div></div>
+        </div>
+      </div>
+      <div class="stat-strip"><div class="stat"><div class="stat-value">$10–40/hr</div><div class="stat-label">per GPU node</div></div><div class="stat"><div class="stat-value warning">~35%</div><div class="stat-label">avg utilization</div></div><div class="stat"><div class="stat-value caution">3×</div><div class="stat-label">ops surface area</div></div></div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 5 — THE SOLUTION                                                 ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">The solution</div><h1>One pool, smart dispatch</h1></div>
+      <p class="subtitle">Consolidate workloads onto <strong>shared GPU infrastructure</strong>. Flow control ensures priority traffic is always served first.</p>
+      <div class="solution-points">
+        <div class="solution-point"><div class="solution-point-title">High utilization</div><div class="solution-point-desc">All workloads share one pool. No stranded GPUs.</div></div>
+        <div class="solution-point"><div class="solution-point-title">Elastic burst handling</div><div class="solution-point-desc">Spikes borrow idle capacity across priority tiers.</div></div>
+        <div class="solution-point"><div class="solution-point-title">Single pool to manage</div><div class="solution-point-desc">One deployment. Priority handled by flow control.</div></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <h2>With flow control: shared pool</h2>
+        <div class="shared-pool" style="margin-top:16px;">
+          <div class="pool-label">Shared inference pool</div>
+          <div class="gpu-row"><div class="gpu-seg chat"></div><div class="gpu-seg chat"></div><div class="gpu-seg api"></div><div class="gpu-seg api"></div><div class="gpu-seg batch"></div><div class="gpu-seg spare"></div></div>
+          <div class="legend">
+            <div class="legend-item" style="font-style:italic;color:var(--rh-gray-45);margin-right:4px;">e.g.</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:var(--rh-red-50);"></div>Chat</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:var(--rh-yellow-30);"></div>API</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:var(--rh-gray-50);"></div>Batch</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:var(--rh-gray-70);"></div>Spare</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-strip"><div class="stat"><div class="stat-value">9 → 6</div><div class="stat-label">GPUs needed</div></div><div class="stat"><div class="stat-value good">70%+</div><div class="stat-label">avg utilization</div></div><div class="stat"><div class="stat-value good">1</div><div class="stat-label">pool to manage</div></div></div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 6 — SECTION: HOW FLOW CONTROL WORKS                              ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide divider-slide">
+    <div class="eyebrow">How it works</div>
+    <h1>How <span class="red">flow control</span> works</h1>
+    <hr class="divider-rule">
+    <p class="divider-subtitle">Centralized priority queuing at the gateway layer</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 7 — FLOW CONTROL ARCHITECTURE (diagram)                         ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">How it works</div><h1>Flow control architecture</h1></div>
+      <p class="subtitle">A <strong>simplified view</strong> of how requests flow through the llm-d stack with flow control enabled.</p>
+
+      <div class="arch-diagram">
+        <!-- Client -->
+        <div class="arch-node">
+          <div class="arch-node-label">Client</div>
+        </div>
+
+        <div class="arch-arrow"></div>
+
+        <!-- Gateway -->
+        <div class="arch-node">
+          <div class="arch-node-label">Gateway</div>
+          <div class="arch-node-sub">Istio</div>
+        </div>
+
+        <div class="arch-arrow"></div>
+
+        <!-- EPP -->
+        <div class="arch-epp">
+          <div class="arch-epp-header">EPP <span>(llm-d Endpoint Picker)</span></div>
+          <div class="arch-epp-flow">
+
+            <!-- Bypass arc: below-saturation path skips queue + fairness -->
+            <div class="arch-bypass"><span class="arch-bypass-label">🟢 Below saturation — direct</span></div>
+
+            <div class="arch-stage">
+              <div class="arch-stage-label">Saturation<br>check</div>
+              <div class="arch-stage-detail">Is the pool full?</div>
+            </div>
+
+            <div class="arch-arrow-sm"></div>
+
+            <div class="arch-stage">
+              <div class="arch-stage-label">Priority<br>queue</div>
+              <div class="arch-tiers">
+                <div class="arch-tier t-premium">Premium</div>
+                <div class="arch-tier t-standard">Standard</div>
+                <div class="arch-tier t-batch">Batch</div>
+              </div>
+            </div>
+
+            <div class="arch-arrow-sm"></div>
+
+            <div class="arch-stage">
+              <div class="arch-stage-label">Tenant<br>fairness</div>
+              <div class="arch-stage-detail">Round-robin<br>within each tier</div>
+            </div>
+
+            <div class="arch-arrow-sm"></div>
+
+            <div class="arch-stage">
+              <div class="arch-stage-label">Backend<br>scoring</div>
+              <div class="arch-stage-detail">Queue-depth &amp;<br>KV-cache aware</div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="arch-arrow"></div>
+
+        <!-- Backend pods -->
+        <div class="arch-backends">
+          <div class="arch-node"><div class="arch-node-label">vLLM Pod 1</div></div>
+          <div class="arch-node"><div class="arch-node-label">vLLM Pod 2</div></div>
+          <div class="arch-node"><div class="arch-node-label">vLLM Pod N</div></div>
+        </div>
+      </div>
+
+      <div class="arch-footnote">
+        <p>⚡ Simplified view — omits advanced features like headroom, holdback, and P/D disaggregation. <a href="https://llm-d.ai/docs/well-lit-paths/foundations/" target="_blank" rel="noopener">See full architecture →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 7b — TWO PATHS + SATURATION DETECTION                            ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">How it works</div><h1>Saturation: two paths through the system</h1></div>
+      <p class="subtitle">Flow control is a <strong>centralized priority queue</strong> between gateway and backends — it only activates when the pool is saturated.</p>
+      <div class="path-row">
+        <div class="path-card direct"><h3>🟢 Below saturation</h3><p>Requests route directly to the best-scoring vLLM backend. No flow-control queuing — vLLM handles its own internal scheduling.</p></div>
+        <div class="path-card queued"><h3>🟡 At saturation</h3><p>Requests enter priority queues. Dispatched in strict priority → fairness → FCFS order.</p></div>
+      </div>
+      <div class="divider"></div>
+      <div class="detect-box"><div class="detect-icon">📡</div><div class="detect-body"><h3>Saturation detection</h3><p>Two pluggable detectors determine when the pool is saturated:</p><ul style="margin:6px 0 0 18px;line-height:1.5"><li><strong>Concurrency-based</strong> — in-flight requests ÷ pool capacity. At ratio 1.0, flow control engages. <em>(default)</em></li><li><strong>Utilization-based</strong> — monitors GPU / KV-cache utilization across backends. Engages when aggregate utilization exceeds a configured threshold.</li></ul></div></div>
+      <p class="ref"><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank" rel="noopener">llm-d flow control docs →</a></p>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 8 — PRIORITY, FAIRNESS, ORDERING                                 ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">How it works</div><h1>Priority, fairness, ordering</h1></div>
+      <p class="subtitle">A strict <strong>3-tier dispatch hierarchy</strong> determines which request is served next.</p>
+      <div class="tiers-detail">
+        <div class="tier-card t1"><div class="tier-num">1</div><div class="tier-body"><h3>Priority</h3><p>Scan bands top-down: <strong style="color:var(--rh-white)">Premium (100)</strong> → <strong style="color:var(--rh-white)">Standard (0)</strong> → <strong style="color:var(--rh-white)">Low (−1)</strong>.</p></div></div>
+        <div class="tier-card t2"><div class="tier-num">2</div><div class="tier-body"><h3>Fairness</h3><p>Within a band, <strong style="color:var(--rh-white)">round-robin across tenants</strong>. Equal dispatch rate regardless of volume.</p></div></div>
+        <div class="tier-card t3"><div class="tier-num">3</div><div class="tier-body"><h3>Ordering</h3><p>Within a tenant queue, <strong style="color:var(--rh-white)">first-come-first-served</strong>. Deterministic and starvation-free.</p></div></div>
+      </div>
+      <h2>The dispatch loop</h2>
+      <div class="dispatch-steps">
+        <div class="step"><div class="step-num">1</div><h3>Scan tiers</h3><p>Highest priority band with queued requests</p><span class="step-arrow">→</span></div>
+        <div class="step"><div class="step-num">2</div><h3>Pick tenant</h3><p>Round-robin selects next tenant queue</p><span class="step-arrow">→</span></div>
+        <div class="step"><div class="step-num">3</div><h3>Pick request</h3><p>Oldest request in that tenant queue (FCFS)</p><span class="step-arrow">→</span></div>
+        <div class="step"><div class="step-num">4</div><h3>Score &amp; route</h3><p>Send to best backend by queue depth + KV-cache score</p></div>
+      </div>
+      <p class="ref"><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank" rel="noopener">llm-d flow control docs →</a></p>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 9 — TWO HEADERS, ZERO CODE CHANGES                               ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">How it works</div><h1>Two headers, zero code changes</h1></div>
+      <p class="subtitle">Priority and fairness are expressed as <strong>HTTP headers</strong> on the OpenAI-compatible request. No SDK, no app changes.</p>
+      <div class="request-excerpt-wrapper">
+        <div class="request-excerpt"><span class="req-method">POST</span> <span class="req-path">/v1/chat/completions</span> HTTP/1.1
+<span class="req-header-key">Host:</span> <span class="req-header-val">llm-gateway.internal</span>
+<span class="req-header-key">Authorization:</span> <span class="req-header-val">Bearer sk-…</span>
+<span class="req-header-key">Content-Type:</span> <span class="req-header-val">application/json</span>
+<span class="req-highlight req-highlight-priority"><span class="req-header-key">x-llm-d-inference-objective:</span> <span class="req-header-val">realtime</span></span>           <span class="req-inline-annotation priority">← Priority band</span>
+<span class="req-highlight req-highlight-fairness"><span class="req-header-key">x-llm-d-inference-fairness-id:</span> <span class="req-header-val">team-alpha</span></span>       <span class="req-inline-annotation fairness">← Fairness ID</span>
+
+<span class="req-body">{"model":"llama-3-70b","messages":[…]}</span></div>
+        <div class="annotation-notes">
+          <div class="annotation-note"><span class="annotation-dot priority"></span><p>Maps to a priority tier: <code style="font-size:11px;color:var(--rh-gray-40);">realtime → 100 · standard → 0 · low-priority → −1</code></p></div>
+          <div class="annotation-note"><span class="annotation-dot fairness"></span><p>Arbitrary string identifying the tenant or workload stream — used for intra-tier fair-share scheduling.</p></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="defaults">
+        <div class="default-card"><h3>No objective header?</h3><p>Defaults to <code>priority 0</code> (Standard tier).</p></div>
+        <div class="default-card"><h3>No fairness header?</h3><p>Assigned to the <code>default-flow</code> queue.</p></div>
+      </div>
+      <div class="trust-disclaimer">
+        <span class="disclaimer-icon">⚠</span>
+        <p><strong>Trust assumption:</strong> Flow control assumes clients can be trusted with these headers. In a shared environment, an API gateway or admission policy should validate and inject headers on behalf of callers rather than letting end-users set them directly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 10 — SECTION: BUSINESS VALUE                                     ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide divider-slide">
+    <div class="eyebrow">Why it matters</div>
+    <h1>The <span class="red">business value</span> of<br>llm-d flow control</h1>
+    <hr class="divider-rule">
+    <p class="divider-subtitle">Cost savings, user protection, fair sharing, and operational wins</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 11 — SAVE MONEY                                                  ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Value proposition</div><h1>Reduce GPU spend 30–50%</h1></div>
+      <p class="subtitle">A shared pool with priority-aware scheduling <strong>maximizes every GPU dollar</strong>.</p>
+      <div class="compare">
+        <div class="compare-panel">
+          <div class="compare-heading">Before</div>
+          <div class="compare-row"><span class="compare-label">Pools</span><span class="compare-value">3 separate</span></div>
+          <div class="compare-row"><span class="compare-label">GPUs</span><span class="compare-value">4 + 3 + 2 = 9</span></div>
+          <div class="compare-row"><span class="compare-label">Utilization</span><span class="compare-value">~35%</span></div>
+          <div class="compare-row"><span class="compare-label">Monthly cost</span><span class="compare-value">~$15,000</span></div>
+        </div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-panel after">
+          <div class="compare-heading">After</div>
+          <div class="compare-row"><span class="compare-label">Pools</span><span class="compare-value">1 shared</span></div>
+          <div class="compare-row"><span class="compare-label">GPUs</span><span class="compare-value">5–6</span></div>
+          <div class="compare-row"><span class="compare-label">Utilization</span><span class="compare-value">70%+</span></div>
+          <div class="compare-row"><span class="compare-label">Monthly cost</span><span class="compare-value">~$9,000</span></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="levers">
+        <div class="lever"><div class="lever-title">Priority-aware sharing</div><div class="lever-desc">High-priority traffic is always served first. Lower-priority work fills spare capacity you've already paid for — effectively running for free.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 12 — PROTECT USERS                                               ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Value proposition</div><h1>Protect users under pressure</h1></div>
+      <p class="subtitle">During a batch burst, <strong>high-priority time-to-first-token (TTFT) stays low</strong>.</p>
+      <div class="scenario">
+        <div class="scenario-panel">
+          <div class="scenario-heading">Without flow control <span style="font-weight:400;font-size:0.75em;opacity:0.7;">(TTFT)</span></div>
+          <div class="latency-row"><div class="latency-label">Chat</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:85%;background:var(--rh-danger-orange-50);"></div></div><div class="latency-value" style="color:var(--rh-danger-orange-50);">12s</div></div>
+          <div class="latency-row"><div class="latency-label">API</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:70%;background:var(--rh-danger-orange-50);"></div></div><div class="latency-value" style="color:var(--rh-danger-orange-50);">8s</div></div>
+          <div class="latency-row"><div class="latency-label">Batch</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:65%;background:var(--rh-yellow-30);"></div></div><div class="latency-value" style="color:var(--rh-yellow-30);">7s</div></div>
+        </div>
+        <div class="scenario-panel good">
+          <div class="scenario-heading">With flow control <span style="font-weight:400;font-size:0.75em;opacity:0.7;">(TTFT)</span></div>
+          <div class="latency-row"><div class="latency-label">Chat</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:8%;background:var(--rh-green-40);"></div></div><div class="latency-value" style="color:var(--rh-green-40);">0.3s</div></div>
+          <div class="latency-row"><div class="latency-label">API</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:15%;background:var(--rh-green-40);"></div></div><div class="latency-value" style="color:var(--rh-green-40);">1.2s</div></div>
+          <div class="latency-row"><div class="latency-label">Batch</div><div class="latency-bar-track"><div class="latency-bar-fill" style="width:90%;background:var(--rh-gray-50);"></div></div><div class="latency-value" style="color:var(--rh-gray-45);">15s</div></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="outcomes">
+        <div class="outcome"><div class="outcome-title">Chat stays fast</div><div class="outcome-desc">TTFT stays low regardless of batch load.</div></div>
+        <div class="outcome"><div class="outcome-title">API within SLA</div><div class="outcome-desc">No SLA breaches from batch interference.</div></div>
+        <div class="outcome"><div class="outcome-title">Batch absorbs pressure</div><div class="outcome-desc">Low-priority work runs slower but uses GPU cycles that would otherwise sit idle.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 13 — FAIR SHARING                                                ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Value proposition</div><h1>Multi-tenant fairness</h1></div>
+      <p class="subtitle">Within each tier, <strong>every tenant gets equal dispatch rate</strong>.</p>
+      <div class="fairness-demo">
+        <div class="fairness-panel">
+          <div class="fairness-heading">Without flow control</div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-blue-40);"></div><div class="tenant-name">Tenant A</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:90%;background:var(--rh-blue-40);"></div></div><div class="bar-value" style="color:var(--rh-blue-40);">10x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:90%;background:var(--rh-blue-40);opacity:0.6;"></div></div><div class="bar-value" style="color:var(--rh-blue-40);">90%</div></div></div></div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-purple-40);"></div><div class="tenant-name">Tenant B</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--rh-purple-40);"></div></div><div class="bar-value" style="color:var(--rh-purple-40);">1x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--rh-purple-40);opacity:0.6;"></div></div><div class="bar-value" style="color:var(--rh-danger-orange-50);">10%</div></div></div></div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-teal-40);"></div><div class="tenant-name">Tenant C</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--rh-teal-40);"></div></div><div class="bar-value" style="color:var(--rh-teal-40);">1x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--rh-teal-40);opacity:0.6;"></div></div><div class="bar-value" style="color:var(--rh-danger-orange-50);">0%</div></div></div></div>
+        </div>
+        <div class="fairness-panel good">
+          <div class="fairness-heading">With flow control <span style="font-weight:400;font-size:0.85em;">(round-robin)</span></div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-blue-40);"></div><div class="tenant-name">Tenant A</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:90%;background:var(--rh-blue-40);"></div></div><div class="bar-value" style="color:var(--rh-blue-40);">10x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--rh-green-40);"></div></div><div class="bar-value" style="color:var(--rh-green-40);">33%</div></div></div></div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-purple-40);"></div><div class="tenant-name">Tenant B</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--rh-purple-40);"></div></div><div class="bar-value" style="color:var(--rh-purple-40);">1x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--rh-green-40);"></div></div><div class="bar-value" style="color:var(--rh-green-40);">33%</div></div></div></div>
+          <div class="tenant-row"><div class="tenant-swatch" style="background:var(--rh-teal-40);"></div><div class="tenant-name">Tenant C</div><div class="tenant-bars"><div class="bar-group"><div class="bar-label">sends</div><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--rh-teal-40);"></div></div><div class="bar-value" style="color:var(--rh-teal-40);">1x</div></div><div class="bar-group"><div class="bar-label">served</div><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--rh-green-40);"></div></div><div class="bar-value" style="color:var(--rh-green-40);">33%</div></div></div></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="use-cases">
+        <div class="use-case"><div class="use-case-title">Internal platforms</div><div class="use-case-desc">Teams share GPU resources fairly.</div></div>
+        <div class="use-case"><div class="use-case-title">SaaS providers</div><div class="use-case-desc">Equal-priority customers share a model without starvation.</div></div>
+        <div class="use-case"><div class="use-case-title">Predictable service tiers</div><div class="use-case-desc">Every tenant gets the priority they paid for.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 14 — OPERATIONAL WINS                                             ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Value proposition</div><h1>Operational wins</h1></div>
+      <p class="subtitle">Fewer pools, declarative config, and <strong>graceful behavior during scaling gaps</strong>.</p>
+      <div class="wins">
+        <div class="win-card"><div class="win-icon">⚙️</div><div class="win-title">Less to manage</div><div class="win-body">One pool instead of many. Fewer deployments, dashboards, and incident surfaces.</div></div>
+        <div class="win-card"><div class="win-icon">⏱️</div><div class="win-title">Bridge scaling gaps</div><div class="win-body">GPU auto-scaling can take <strong>10+ minutes</strong> (node provision + model load). Flow control queues the burst while new capacity comes online.</div></div>
+        <div class="win-card"><div class="win-icon">📋</div><div class="win-title">Declarative policy</div><div class="win-body">Priority and fairness rules are <strong>Kubernetes CRDs</strong>. Version-controlled and auditable.</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="key-points">
+        <div class="key-point green"><div class="key-point-title">Zero client changes</div><div class="key-point-desc">Just set an HTTP header. No SDK or app changes needed.</div></div>
+        <div class="key-point green"><div class="key-point-title">New tenants for free</div><div class="key-point-desc">Set the fairness header — round-robin includes them automatically.</div></div>
+        <div class="key-point green"><div class="key-point-title">Fail-open safety</div><div class="key-point-desc">EPP down? Gateway routes directly. You never lose traffic.</div></div>
+        <div class="key-point green"><div class="key-point-title">One-line rollback</div><div class="key-point-desc">Remove a single Helm value. Rollback takes seconds.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 15 — SECTION: DEPLOY & CONFIGURE                                 ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide divider-slide">
+    <div class="eyebrow">Platform engineering</div>
+    <h1><span class="red">Deploying</span> &amp; configuring</h1>
+    <hr class="divider-rule">
+    <p class="divider-subtitle">What it takes to get started</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 16a — FIVE CONCEPTS                                               ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Deploy &amp; configure</div><h1>Five basic configuration concepts</h1></div>
+      <div class="concepts">
+        <div class="concept-card c1"><div class="concept-num">1</div><div class="concept-body"><h3>Feature gate</h3><p>Master switch. <code>featureGates: [flowControl]</code></p></div></div>
+        <div class="concept-card c2"><div class="concept-num">2</div><div class="concept-body"><h3>Saturation detection</h3><p>In-flight ÷ capacity. At 1.0 → queue. Below → route direct.</p></div></div>
+        <div class="concept-card c3"><div class="concept-num">3</div><div class="concept-body"><h3>Global settings</h3><p><code>maxRequests</code> caps queue depth. <code>defaultRequestTTL</code> expires stale requests.</p></div></div>
+        <div class="concept-card c4"><div class="concept-num">4</div><div class="concept-body"><h3>Priority bands</h3><p>Per-tier queues, each with its own <code>maxRequests</code> cap.</p></div></div>
+        <div class="concept-card c5"><div class="concept-num">5</div><div class="concept-body"><h3>InferenceObjectives</h3><p>CRDs that map header values to integer priorities.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 16b — EXAMPLE CONFIG                                              ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Deploy &amp; configure</div><h1>Example configuration</h1></div>
+      <div class="yaml-block"><span class="comment"># EndpointPickerConfig</span>
+<span class="key">featureGates</span>:
+  - <span class="str">flowControl</span>
+
+<span class="key">flowControl</span>:
+  <span class="key">maxConcurrency</span>: <span class="num">15</span>
+  <span class="key">concurrencyMode</span>: <span class="str">requests</span>   <span class="comment"># requests | utilization | hybrid</span>
+  <span class="key">headroom</span>: <span class="num">0.0</span>
+  <span class="key">maxRequests</span>: <span class="str">"500"</span>
+  <span class="key">defaultRequestTTL</span>: <span class="str">"60s"</span>
+  <span class="key">priorityBands</span>:
+    - <span class="key">priority</span>: <span class="num">100</span>    <span class="comment"># Premium</span>
+      <span class="key">maxRequests</span>: <span class="str">"200"</span>
+    - <span class="key">priority</span>: <span class="num">0</span>      <span class="comment"># Standard</span>
+      <span class="key">maxRequests</span>: <span class="str">"150"</span>
+    - <span class="key">priority</span>: <span class="num">-1</span>     <span class="comment"># Low-priority</span>
+      <span class="key">maxRequests</span>: <span class="str">"50"</span>
+
+<span class="key">inferenceObjectives</span>:
+  - <span class="key">name</span>: <span class="str">realtime</span>       <span class="comment"># → priority 100</span>
+  - <span class="key">name</span>: <span class="str">standard</span>       <span class="comment"># → priority 0</span>
+  - <span class="key">name</span>: <span class="str">low-priority</span>   <span class="comment"># → priority -1</span></div>
+      <p class="ref"><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank" rel="noopener">llm-d flow control docs →</a></p>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 17a — TUNING KNOBS                                                ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide compact">
+      <div><div class="eyebrow">Deploy &amp; configure</div><h1>Tuning knobs</h1></div>
+      <p class="subtitle">Seven parameters control behavior — tune each to your model and workload.</p>
+      <table class="knob-table">
+        <thead><tr><th>Knob</th><th>What it controls</th><th>Example</th><th>Watch for</th></tr></thead>
+        <tbody>
+          <tr><td><code>maxConcurrency</code></td><td class="desc-col">Per-endpoint saturation threshold</td><td class="example-value">15</td><td class="symptom-col">TTFT degrades → too high</td></tr>
+          <tr><td><code>concurrencyMode</code></td><td class="desc-col">How saturation is measured</td><td class="example-value">requests</td><td class="symptom-col">Uneven load → try <code>hybrid</code> or <code>utilization</code></td></tr>
+          <tr><td><code>headroom</code></td><td class="desc-col">Buffer above saturation</td><td class="example-value">0.0</td><td class="symptom-col">Queue flapping → raise to 0.1</td></tr>
+          <tr><td><code>holdback</code></td><td class="desc-col">Reserve capacity for priority traffic</td><td class="example-value">0.1</td><td class="symptom-col">Premium latency spikes → raise holdback</td></tr>
+          <tr><td><code>maxRequests</code></td><td class="desc-col">Global queue cap</td><td class="example-value">500</td><td class="symptom-col">Spurious 429s → too low</td></tr>
+          <tr><td><code>defaultRequestTTL</code></td><td class="desc-col">Max wait time in queue</td><td class="example-value">60s</td><td class="symptom-col">High expiry → too short</td></tr>
+          <tr><td><code>priorityBands</code></td><td class="desc-col">Per-tier queue caps</td><td class="example-value">200/150/50</td><td class="symptom-col">Premium 429s → cap too small</td></tr>
+        </tbody>
+      </table>
+      <div class="divider"></div>
+      <div class="how-to">
+        <h3>🔍 Finding your <code>maxConcurrency</code> — watch the latency-throughput curve</h3>
+        <div class="how-steps">
+          <div class="how-step"><div class="how-step-num">1</div><p>Ramp concurrency and plot latency vs. throughput</p><span class="how-step-arrow">→</span></div>
+          <div class="how-step"><div class="how-step-num">2</div><p>Latency stays flat while throughput climbs</p><span class="how-step-arrow">→</span></div>
+          <div class="how-step"><div class="how-step-num">3</div><p>Find the knee: latency spikes, throughput plateaus</p><span class="how-step-arrow">→</span></div>
+          <div class="how-step"><div class="how-step-num">4</div><p>Set <code>maxConcurrency</code> just below the knee</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 17b — CONCURRENCY MODES                                           ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Deploy &amp; configure</div><h1>Saturation detection modes</h1></div>
+      <p class="subtitle">Two pluggable detectors — choose how the EPP decides the pool is saturated.</p>
+      <div class="mode-group">
+        <div class="mode-group-label">Concurrency-based — count in-flight work</div>
+        <div class="mode-row">
+          <div class="mode-card active"><span class="mode-tag">requests</span><h3>Count requests</h3><p>Simple capacity model. <strong style="color:var(--rh-green-40)">Default.</strong></p></div>
+          <div class="mode-card"><span class="mode-tag">tokens</span><h3>Count tokens</h3><p>For variable-length prompts that dominate GPU resources.</p></div>
+          <div class="mode-card"><span class="mode-tag">hybrid</span><h3>Both (stricter wins)</h3><p>Useful when prompt lengths vary widely.</p></div>
+        </div>
+      </div>
+      <div class="mode-group">
+        <div class="mode-group-label">Utilization-based — observe backend metrics</div>
+        <div class="mode-row single">
+          <div class="mode-card"><span class="mode-tag">utilization</span><h3>GPU / KV-cache utilization</h3><p>Saturate based on observed backend utilization instead of counting in-flight work.</p></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="callout-box"><p><strong>Rule of thumb:</strong> size global <code>maxRequests</code> to roughly 10–20× your pool's concurrent capacity.<br>4 replicas × <code>maxConcurrency: 15</code> = capacity 60 → set <code>maxRequests</code> 600–1200.</p></div>
+      <p class="ref"><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank" rel="noopener">llm-d flow control docs →</a></p>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 25 — SECTION: SUMMARY                                             ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide divider-slide">
+    <div class="eyebrow">Closing</div>
+    <h1><span class="red">Summary</span> &amp; next steps</h1>
+    <hr class="divider-rule">
+    <p class="divider-subtitle">Key takeaways, decision guide, and getting started</p>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 26 — KEY TAKEAWAYS                                                ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide" style="align-items:center;">
+      <h2 style="text-align:center;">Key takeaways</h2>
+      <div class="takeaway-grid">
+        <div class="takeaway-card"><span class="takeaway-icon">💰</span><strong>Consolidate GPU pools safely</strong><span class="detail">30-50% cost reduction by sharing infrastructure with priority enforcement</span></div>
+        <div class="takeaway-card"><span class="takeaway-icon">⚡</span><strong>Priority is strict and declarative</strong><span class="detail">Premium tier always served first, configured in YAML</span></div>
+        <div class="takeaway-card"><span class="takeaway-icon">⚖️</span><strong>Fairness is automatic</strong><span class="detail">Round-robin prevents noisy-neighbor starvation</span></div>
+        <div class="takeaway-card"><span class="takeaway-icon">🔄</span><strong>Batch runs for free</strong><span class="detail">Spare interactive capacity used at near-zero marginal cost</span></div>
+        <div class="takeaway-card"><span class="takeaway-icon">🚀</span><strong>Zero overhead below saturation</strong><span class="detail">Flow control is invisible when the pool is healthy</span></div>
+        <div class="takeaway-card"><span class="takeaway-icon">🛡️</span><strong>Fail-open design</strong><span class="detail">No flow control failure causes an outage</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 27 — DECISION GUIDE                                               ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Reference</div><h1>When to use flow control</h1></div>
+      <div><h2><span class="indicator yes"></span>Good fit</h2><div class="table-panel" style="margin-top:12px;"><table><thead><tr><th style="width:40%;">Condition</th><th>Why</th></tr></thead><tbody>
+        <tr><td class="condition">Multiple workload types share GPUs</td><td class="reason">Priority prevents low-value work from degrading high-value</td></tr>
+        <tr><td class="condition">Multiple tenants share a pool</td><td class="reason">Fairness prevents noisy-neighbor starvation</td></tr>
+        <tr><td class="condition">Interactive + batch workloads</td><td class="reason">Batch fills spare capacity without impacting latency</td></tr>
+        <tr><td class="condition">GPU utilization below 50%</td><td class="reason">Consolidation raises utilization dramatically</td></tr>
+      </tbody></table></div></div>
+      <div class="divider"></div>
+      <div><h2><span class="indicator no"></span>Use something else</h2><div class="table-panel" style="margin-top:12px;"><table><thead><tr><th style="width:40%;">Situation</th><th>Better alternative</th></tr></thead><tbody>
+        <tr><td class="condition">Hard SLA with contractual penalties</td><td class="reason">Dedicated pool — FC is best-effort, not guaranteed</td></tr>
+        <tr><td class="condition">Different models per workload</td><td class="reason">Separate pools — FC operates within one model</td></tr>
+        <tr><td class="condition">Regulatory isolation required</td><td class="reason">Dedicated pool for data isolation</td></tr>
+        <tr><td class="condition">Mission-critical workload with zero-tolerance SLOs</td><td class="reason">Dedicated pool — don't share what can't afford contention</td></tr>
+        <tr><td class="condition">Traffic never saturates</td><td class="reason">FC only engages under saturation</td></tr>
+      </tbody></table></div></div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 27b — LIMITATIONS & OPERATIONAL CONSIDERATIONS                     ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Reference</div><h1>Limitations &amp; operational considerations</h1></div>
+
+      <div><h2><span class="indicator no"></span>Flow control is not a silver bullet</h2>
+      <div class="key-points" style="margin-top:14px;">
+        <div class="key-point amber"><div class="key-point-title">Complement, don't replace, scaling</div><div class="key-point-desc">Flow control manages <em>demand</em> — it cannot add capacity. Pair it with autoscaling, right-sizing, and hardware provisioning for a complete ops strategy.</div></div>
+        <div class="key-point amber"><div class="key-point-title">Keep critical workloads separate</div><div class="key-point-desc">If a workload truly cannot tolerate queuing or deprioritization — even briefly — run it on a dedicated pool. Flow control is best-effort, not guaranteed isolation.</div></div>
+        <div class="key-point amber"><div class="key-point-title">Adaptation is not instant</div><div class="key-point-desc">The EPP reacts to saturation signals, but there is an inherent feedback loop. Expect a brief adjustment window when load spikes or shifts suddenly.</div></div>
+        <div class="key-point amber"><div class="key-point-title">Settings aren't set-and-forget</div><div class="key-point-desc">Priority tiers, fairness weights, and queue depths reflect your <em>current</em> traffic mix. When usage patterns change — new tenants, seasonal surges, model swaps — revisit and re-tune.</div></div>
+      </div></div>
+
+      <div class="divider"></div>
+
+      <div class="callout-box"><p><strong>Bottom line:</strong> Flow control is one layer in a defense-in-depth approach to GPU operations — it works best alongside autoscaling, capacity planning, and dedicated pools for truly mission-critical work.</p></div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 28a — ROI                                                          ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide">
+      <div><div class="eyebrow">Reference</div><h1>ROI at a glance</h1></div>
+      <div class="roi-grid">
+        <div class="roi-card"><div class="roi-card-heading">Cost to implement</div><div class="roi-item"><span class="roi-label">Engineer time</span><span class="roi-value">2–5 days</span></div><div class="roi-item"><span class="roi-label">Ongoing overhead</span><span class="roi-value">Minimal</span></div><div class="roi-item"><span class="roi-label">Extra infrastructure</span><span class="roi-value">None</span></div></div>
+        <div class="roi-card highlight"><div class="roi-card-heading">Savings levers</div><div class="roi-item"><span class="roi-label">GPU consolidation</span><span class="roi-value">30–50%</span></div><div class="roi-item"><span class="roi-label">Over-provisioning</span><span class="roi-value">Eliminated</span></div><div class="roi-item"><span class="roi-label">Batch GPU cost</span><span class="roi-value">→ $0</span></div></div>
+        <div class="roi-card"><div class="roi-card-heading">Risk reduction</div><div class="roi-item"><span class="roi-label">Batch burst impact</span><span class="roi-value">Eliminated</span></div><div class="roi-item"><span class="roi-label">Noisy neighbor</span><span class="roi-value">Mitigated</span></div><div class="roi-item"><span class="roi-label">Scaling-lag outages</span><span class="roi-value">Bridged</span></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="risk-points">
+        <div class="risk-point"><div class="risk-title">Fail-open</div><div class="risk-desc">EPP down? Gateway routes directly. Traffic keeps flowing.</div></div>
+        <div class="risk-point"><div class="risk-title">Zero overhead</div><div class="risk-desc">Below saturation, no queuing. No added latency.</div></div>
+        <div class="risk-point"><div class="risk-title">Try without committing</div><div class="risk-desc">Deploy in non-prod, validate, promote when ready.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 28b — TIMELINE TO VALUE                                            ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide" style="align-items:center;justify-content:center;">
+      <div><div class="eyebrow">Reference</div><h1 style="text-align:center;">Timeline to value</h1></div>
+      <div class="timeline" style="margin-top:20px;">
+        <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Day 1</div><div class="timeline-desc">Deployed and enforcing priorities</div></div>
+        <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Week 1</div><div class="timeline-desc">Dashboards show priority differentiation</div></div>
+        <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Month 1</div><div class="timeline-desc">GPU consolidation savings are measurable</div></div>
+        <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Ongoing</div><div class="timeline-desc">Each new workload amortizes cost further</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════════╗
+       ║  SLIDE 29 — NEXT STEPS & RESOURCES + QUESTIONS                           ║
+       ╚══════════════════════════════════════════════════════════════════════════╝ -->
+  <section class="slide">
+    <div class="content-slide" style="align-items:center;">
+      <h2 style="text-align:center;">Next steps &amp; resources</h2>
+      <div class="resources-columns">
+        <div class="resources-panel"><h3>🧪 Try it</h3><ul class="try-list"><li>Deploy llm-d with flow control on Kubernetes</li><li>Run benchmark scenarios to see it work</li><li>Compare flow-control-on vs flow-control-off</li></ul></div>
+        <div class="resources-panel"><h3>📚 Learn more</h3><ul class="link-list">
+          <li><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank"><span class="link-emoji">🌐</span> Flow control docs</a></li>
+          <li><a href="https://llm-d.ai/docs/well-lit-paths/foundations/" target="_blank"><span class="link-emoji">📖</span> llm-d foundations</a></li>
+          <li><a href="https://llm-d.ai" target="_blank"><span class="link-emoji">🏠</span> llm-d.ai</a></li>
+          <li><a href="https://www.redhat.com/en/products/ai/inference" target="_blank"><span class="link-emoji">🎩</span> Red Hat AI Inference</a></li>
+        </ul></div>
+      </div>
+      <p class="questions-cta">Questions?</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     NAVIGATION
+     ══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+  (() => {
+    const deck = document.getElementById('deck');
+    const slides = deck.querySelectorAll('.slide');
+    const counter = document.getElementById('counter');
+    const bar = document.getElementById('progress');
+    const total = slides.length;
+    let current = 0;
+
+    function go(i) {
+      current = Math.max(0, Math.min(i, total - 1));
+      deck.style.transform = `translateX(-${current * 100}vw)`;
+      counter.textContent = `${current + 1} / ${total}`;
+      bar.style.width = `${((current + 1) / total) * 100}%`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(current + 1); }
+      if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); go(current - 1); }
+      if (e.key === 'Home') { e.preventDefault(); go(0); }
+      if (e.key === 'End')  { e.preventDefault(); go(total - 1); }
+    });
+
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+    document.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (Math.abs(dx) > 50) { dx < 0 ? go(current + 1) : go(current - 1); }
+    });
+
+    go(0);
+  })();
+</script>
+
+</body>
+</html>

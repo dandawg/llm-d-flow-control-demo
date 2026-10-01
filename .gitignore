@@ -1,4 +1,8 @@
 # Results and temporary files
+
+.cursor
+Open-questions
+
 benchmarks/results/*/
 !benchmarks/results/.gitkeep
 

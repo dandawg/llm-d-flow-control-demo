@@ -1571,28 +1571,29 @@
   <section class="slide">
     <div class="content-slide">
       <div><div class="eyebrow">Deploy &amp; configure</div><h1>Example configuration</h1></div>
-      <div class="yaml-block"><span class="comment"># EndpointPickerConfig</span>
+      <div class="yaml-block"><span class="comment"># EndpointPickerConfig (abbreviated)</span>
 <span class="key">featureGates</span>:
   - <span class="str">flowControl</span>
-
+<span class="key">plugins</span>:                                              <span class="comment"># ...</span>
+  - <span class="key">type</span>: <span class="str">round-robin-fairness-policy</span>
+  - <span class="key">type</span>: <span class="str">concurrency-detector</span>
+    <span class="key">parameters</span>: { <span class="key">maxConcurrency</span>: <span class="num">15</span>, <span class="key">concurrencyMode</span>: <span class="str">requests</span> }
+<span class="key">saturationDetector</span>: { <span class="key">pluginRef</span>: <span class="str">concurrency-detector</span> }
 <span class="key">flowControl</span>:
-  <span class="key">maxConcurrency</span>: <span class="num">15</span>
-  <span class="key">concurrencyMode</span>: <span class="str">requests</span>   <span class="comment"># requests | utilization | hybrid</span>
-  <span class="key">headroom</span>: <span class="num">0.0</span>
   <span class="key">maxRequests</span>: <span class="str">"500"</span>
   <span class="key">defaultRequestTTL</span>: <span class="str">"60s"</span>
   <span class="key">priorityBands</span>:
     - <span class="key">priority</span>: <span class="num">100</span>    <span class="comment"># Premium</span>
       <span class="key">maxRequests</span>: <span class="str">"200"</span>
+      <span class="key">fairnessPolicyRef</span>: <span class="str">round-robin-fairness-policy</span>  <span class="comment"># ...</span>
     - <span class="key">priority</span>: <span class="num">0</span>      <span class="comment"># Standard</span>
-      <span class="key">maxRequests</span>: <span class="str">"150"</span>
+      <span class="key">maxRequests</span>: <span class="str">"150"</span>                          <span class="comment"># ...</span>
     - <span class="key">priority</span>: <span class="num">-1</span>     <span class="comment"># Low-priority</span>
-      <span class="key">maxRequests</span>: <span class="str">"50"</span>
-
-<span class="key">inferenceObjectives</span>:
-  - <span class="key">name</span>: <span class="str">realtime</span>       <span class="comment"># → priority 100</span>
-  - <span class="key">name</span>: <span class="str">standard</span>       <span class="comment"># → priority 0</span>
-  - <span class="key">name</span>: <span class="str">low-priority</span>   <span class="comment"># → priority -1</span></div>
+      <span class="key">maxRequests</span>: <span class="str">"50"</span>                           <span class="comment"># ...</span>
+<span class="key">inferenceObjectives</span>:                              <span class="comment"># separate CRDs</span>
+  - { <span class="key">name</span>: <span class="str">realtime</span>, <span class="key">priority</span>: <span class="num">100</span> }
+  - { <span class="key">name</span>: <span class="str">standard</span>, <span class="key">priority</span>: <span class="num">0</span> }
+  - { <span class="key">name</span>: <span class="str">low-priority</span>, <span class="key">priority</span>: <span class="num">-1</span> }</div>
       <p class="ref"><a href="https://llm-d.ai/docs/well-lit-paths/foundations/flow-control" target="_blank" rel="noopener">llm-d flow control docs →</a></p>
     </div>
   </section>

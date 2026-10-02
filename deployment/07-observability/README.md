@@ -142,3 +142,11 @@ sum(rate(vllm:prompt_tokens_total[30s])) + sum(rate(vllm:generation_tokens_total
 
 For more detailed query examples with interpretation guidance, see the
 [Operator Guide](../../docs/operator-guide.md#key-promql-queries).
+
+## Interactive Metrics Exploration
+
+The [Metrics Exploration notebook](../../benchmarks/notebook/05-metrics-exploration.ipynb)
+lets you hit the raw EPP and vLLM `/metrics` endpoints directly, inspect every
+metric and its labels, and then see how Prometheus collects and queries them.
+No benchmark run required — just a running cluster with the EPP and a vLLM pod
+port-forwarded.

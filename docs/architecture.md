@@ -159,7 +159,10 @@ Two sources of metrics feed the observability stack:
 
 Prometheus runs in the `llm-d-monitoring` namespace and is configured to scrape
 both endpoints. Service discovery uses Kubernetes pod labels to find EPP and
-vLLM pods automatically.
+vLLM pods automatically. For the full metric catalog and PromQL examples, see
+the [Observability README](../deployment/07-observability/README.md). To explore
+metrics interactively, see the
+[Metrics Exploration notebook](../benchmarks/notebook/05-metrics-exploration.ipynb).
 
 ### Grafana Dashboards
 

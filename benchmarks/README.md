@@ -135,6 +135,7 @@ make notebook
 | `notebook/02-priority-tiers.ipynb` | Priority tiers | Flow Control Overview, Latency by Tier |
 | `notebook/03-intra-tier-fairness.ipynb` | Intra-tier fairness | Fairness Analysis |
 | `notebook/04-batch-vs-interactive.ipynb` | Batch vs interactive | Flow Control Overview, Latency by Tier |
+| `notebook/05-metrics-exploration.ipynb` | *(no benchmark)* | Interactive metric discovery, label inspection, raw API format |
 
 ## Comparing Results in Grafana
 
